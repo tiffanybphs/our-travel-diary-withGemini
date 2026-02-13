@@ -6,8 +6,6 @@
     <title>Our Travel Diary 🌸</title>
     
     <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon.png">
-    
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -24,89 +22,96 @@
         }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
     <style>
-        body { background-color: #FFF9E3; color: #5D4037; overflow-x: hidden; }
+        body { background-color: #FFF9E3; color: #5D4037; }
         .splash-screen {
             position: fixed; inset: 0; z-index: 9999;
             background: white url('splash.jpeg') no-repeat center center;
             background-size: cover;
-            display: flex; align-items: center; justify-content: center;
             transition: opacity 0.8s ease;
         }
         .fade-out { opacity: 0; pointer-events: none; }
+        .glass-card { background: rgba(255, 255, 255, 0.9); backdrop-blur: 10px; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div :class="['splash-screen', { 'fade-out': !showSplash }]">
-        <div v-if="loading" class="mt-auto mb-20 bg-white/80 px-6 py-2 rounded-full backdrop-blur-sm">
-            <span class="text-sakura-dark font-bold animate-pulse">正在開啟手帳...</span>
-        </div>
-    </div>
+    <div :class="['splash-screen', { 'fade-out': !showSplash }]"></div>
 
-    <div v-if="!isConnected" class="fixed inset-0 z-[100] bg-cream flex items-center justify-center p-6">
-        <div class="bg-white p-8 rounded-[30px] shadow-2xl w-full max-w-sm">
-            <h2 class="text-2xl font-bold text-sakura-dark mb-4 text-center">連接資料庫 🌸</h2>
-            <div class="space-y-4">
-                <input v-model="config.url" placeholder="Supabase URL" class="w-full p-3 rounded-xl bg-gray-50 border border-sakura-main outline-none">
-                <input v-model="config.key" placeholder="Supabase Anon Key" type="password" class="w-full p-3 rounded-xl bg-gray-50 border border-sakura-main outline-none">
-                <button @click="connectSupabase" class="w-full bg-sakura-main text-white py-3 rounded-full font-bold">
-                    確認連線
-                </button>
-                <p v-if="errorMsg" class="text-red-400 text-xs text-center">{{ errorMsg }}</p>
-            </div>
-        </div>
-    </div>
+    <div class="max-w-md mx-auto bg-white min-h-screen relative shadow-2xl pb-20 overflow-hidden">
+        
+        <header class="relative h-64">
+            <img src="header-bg(1).jpg" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800'">
+            <div class="absolute inset-0 bg-black/10"></div>
+            
+            <button @click="showSettings = true" class="absolute top-12 right-6 w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
 
-    <div v-if="isConnected" class="max-w-md mx-auto bg-white min-h-screen relative shadow-inner pb-20">
-        <header class="relative h-64 overflow-hidden">
-            <img src="header-bg(1).jpg" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800'">
-            <div class="absolute inset-0 bg-black/20"></div>
             <div class="absolute bottom-14 left-6 text-white">
-                <h1 class="text-2xl font-bold tracking-widest">{{ trip.title || '讀取中...' }}</h1>
-                <p class="text-sm opacity-80">{{ trip.start_date }} - {{ trip.end_date }}</p>
+                <h1 class="text-2xl font-bold tracking-widest">{{ trip.title || '我的旅遊手帳' }}</h1>
+                <p class="text-sm opacity-90" v-if="trip.start_date">{{ trip.start_date }} ➜ {{ trip.end_date }}</p>
             </div>
         </header>
 
-        <div class="relative -mt-10 bg-white rounded-t-[40px] px-4 pt-8">
-            <div class="flex justify-between mb-8 px-2">
-                <button v-for="t in tabs" @click="currentTab = t.id" :class="['flex flex-col items-center gap-1', currentTab === t.id ? 'text-sakura-dark' : 'text-gray-300']">
-                    <div :class="['w-12 h-12 rounded-full flex items-center justify-center', currentTab === t.id ? 'bg-sakura-light' : '']">
-                        <i :class="['text-xl', t.icon]"></i>
-                    </div>
-                    <span class="text-[10px]">{{ t.name }}</span>
+        <div class="relative -mt-10 bg-white rounded-t-[40px] px-6 pt-8">
+            <div v-if="!isConnected" class="py-20 text-center">
+                <div class="mb-6 opacity-30">
+                    <i class="fa-solid fa-cloud-slash text-6xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-400 mb-2">尚未連接資料庫</h3>
+                <p class="text-sm text-gray-300 mb-6">請點擊右上角 ⚙️ 進行設定</p>
+                <button @click="showSettings = true" class="px-8 py-2 border-2 border-sakura-main text-sakura-main rounded-full font-bold">
+                    前往設定
                 </button>
             </div>
 
-            <div v-if="currentTab === 'schedule'" class="space-y-4">
-                <div v-for="item in schedules" :key="item.id" class="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex gap-4">
-                    <div class="text-center min-w-[50px]">
-                        <div class="font-bold text-gray-600">{{ item.start_time }}</div>
-                        <div class="text-[10px] text-gray-300">{{ item.end_time }}</div>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-bold text-gray-700">{{ item.title }}</h3>
+            <div v-else class="space-y-4">
+                <div v-for="item in schedules" :key="item.id" class="p-4 border border-gray-100 rounded-2xl shadow-sm flex gap-4">
+                    <div class="font-bold text-sakura-dark">{{ item.start_time }}</div>
+                    <div>
+                        <h4 class="font-bold">{{ item.title }}</h4>
                         <p class="text-xs text-gray-400">{{ item.location }}</p>
                     </div>
-                </div>
-                
-                <div v-if="schedules.length === 0" class="text-center py-20 text-gray-300">
-                    <p>目前沒有行程，請點擊下方 + 新增</p>
                 </div>
             </div>
         </div>
 
-        <button class="fixed bottom-6 right-6 w-14 h-14 bg-sakura-main text-white rounded-full shadow-lg flex items-center justify-center text-xl">
-            <i class="fa-solid fa-plus"></i>
-        </button>
+        <div v-if="showSettings" class="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center">
+            <div class="bg-white w-full max-w-sm rounded-t-[30px] sm:rounded-[30px] p-8 shadow-2xl animate-slide-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-sakura-dark">連線設定 ⚙️</h2>
+                    <button @click="showSettings = false" class="text-gray-300"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-gray-400 ml-2 uppercase">Supabase URL</label>
+                        <input v-model="config.url" placeholder="https://..." class="w-full p-3 mt-1 rounded-xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 ml-2 uppercase">Anon Key</label>
+                        <input v-model="config.key" type="password" placeholder="ey..." class="w-full p-3 mt-1 rounded-xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none">
+                    </div>
+                    
+                    <button @click="connectSupabase" :disabled="loading" class="w-full bg-sakura-main text-white py-4 rounded-2xl font-bold shadow-lg shadow-sakura-main/20 active:scale-95 transition-transform">
+                        <span v-if="!loading">儲存並連線</span>
+                        <span v-else class="flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-notch animate-spin"></i> 連線中...
+                        </span>
+                    </button>
+                    
+                    <p v-if="errorMsg" class="text-red-400 text-xs text-center font-medium">{{ errorMsg }}</p>
+                    <p v-if="isConnected" class="text-green-500 text-xs text-center">✅ 已成功連接</p>
+                </div>
+            </div>
+        </div>
 
-        <div class="text-center text-[10px] text-gray-200 mt-10 pb-4">🌸 Tiffany & Benjamin 🌸</div>
+        <div class="text-center text-[10px] text-gray-200 mt-10 pb-10">🌸 Tiffany & Benjamin 🌸</div>
     </div>
 </div>
 
@@ -116,50 +121,52 @@ const { createApp, ref, onMounted } = Vue;
 createApp({
     setup() {
         const showSplash = ref(true);
+        const showSettings = ref(false);
         const isConnected = ref(false);
         const loading = ref(false);
         const errorMsg = ref('');
-        const config = ref({ url: localStorage.getItem('sb_url') || '', key: localStorage.getItem('sb_key') || '' });
+        
+        const config = ref({ 
+            url: localStorage.getItem('sb_url') || '', 
+            key: localStorage.getItem('sb_key') || '' 
+        });
         
         const trip = ref({});
         const schedules = ref([]);
-        const currentTab = ref('schedule');
-        const tabs = [
-            { id: 'schedule', name: '行程', icon: 'fa-solid fa-calendar-day' },
-            { id: 'nav', name: '導航', icon: 'fa-solid fa-map-location-dot' },
-            { id: 'voucher', name: '憑證', icon: 'fa-solid fa-ticket' },
-            { id: 'list', name: '清單', icon: 'fa-solid fa-clipboard-check' },
-            { id: 'money', name: '記帳', icon: 'fa-solid fa-yen-sign' }
-        ];
-
         let supabase = null;
 
         const connectSupabase = async () => {
-            if (!config.url || !config.key) {
+            // 修正：增加 .trim() 確保不會因為前後空格導致判斷錯誤
+            const url = config.value.url.trim();
+            const key = config.value.key.trim();
+
+            if (!url || !key) {
                 errorMsg.value = '請填寫完整資訊';
                 return;
             }
-            loading.value = true;
-            try {
-                supabase = window.supabase.createClient(config.url, config.key);
-                
-                // 測試連線：抓取第一筆旅遊資料
-                const { data, error } = await supabase.from('trips').select('*').limit(1).single();
-                
-                if (error) throw error;
 
-                trip.value = data;
-                localStorage.setItem('sb_url', config.url);
-                localStorage.setItem('sb_key', config.key);
+            loading.value = true;
+            errorMsg.value = '';
+
+            try {
+                supabase = window.supabase.createClient(url, key);
                 
-                // 抓取行程
+                // 嘗試讀取資料
+                const { data: tripData, error: tripError } = await supabase.from('trips').select('*').limit(1).single();
+                if (tripError) throw tripError;
+
                 const { data: schData } = await supabase.from('schedules').select('*').order('sort_order');
+                
+                // 成功後儲存
+                trip.value = tripData;
                 schedules.value = schData || [];
+                localStorage.setItem('sb_url', url);
+                localStorage.setItem('sb_key', key);
                 
                 isConnected.value = true;
-                setTimeout(() => { showSplash.value = false; }, 1000);
+                setTimeout(() => { showSettings.value = false; }, 800);
             } catch (err) {
-                errorMsg.value = '連線失敗：' + err.message;
+                errorMsg.value = '連線失敗：請檢查 URL 或 Key 是否正確';
                 console.error(err);
             } finally {
                 loading.value = false;
@@ -167,17 +174,25 @@ createApp({
         };
 
         onMounted(() => {
-            if (config.url && config.key) {
+            // 自動連線
+            if (config.value.url && config.value.key) {
                 connectSupabase();
-            } else {
-                // 如果沒資料，3秒後自動關閉 Splash 讓用戶輸入
-                setTimeout(() => { showSplash.value = false; }, 3000);
             }
+            // 2.5 秒後關閉啟動畫面
+            setTimeout(() => { showSplash.value = false; }, 2500);
         });
 
-        return { showSplash, isConnected, loading, config, errorMsg, connectSupabase, trip, schedules, currentTab, tabs };
+        return { showSplash, showSettings, isConnected, loading, config, errorMsg, connectSupabase, trip, schedules };
     }
 }).mount('#app');
 </script>
+
+<style>
+@keyframes slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.4s ease-out; }
+</style>
 </body>
 </html>

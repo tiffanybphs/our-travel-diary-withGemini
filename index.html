@@ -5,463 +5,179 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Our Travel Diary 🌸</title>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
     
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['"Zen Maru Gothic"', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['"Zen Maru Gothic"', 'sans-serif'] },
                     colors: {
-                        sakura: {
-                            light: '#FFF0F5', // 淺粉背景
-                            main: '#FFD1DC',  // 櫻花粉
-                            dark: '#FFB7C5',  // 深粉按鈕
-                        },
-                        cream: '#FFF9E3',     // 米黃底色
-                        sky: '#B0E0E6',       // 淡粉藍
-                        cocoa: '#8B4513',     // 文字主色
-                        gray: {
-                            warm: '#F5F5F0'
-                        }
-                    },
-                    boxShadow: {
-                        'soft': '0 4px 20px -2px rgba(255, 209, 220, 0.5)',
-                        'floating': '0 10px 30px -5px rgba(139, 69, 19, 0.15)',
+                        sakura: { light: '#FFF0F5', main: '#FFD1DC', dark: '#FFB7C5' },
+                        cream: '#FFF9E3', cocoa: '#8B4513'
                     }
                 }
             }
         }
     </script>
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    
-    <style>
-        /* 全局樣式微調 */
-        body {
-            background-color: #FFF9E3; /* 米黃色背景 */
-            color: #5D4037; /* 深可可色文字 */
-            -webkit-font-smoothing: antialiased;
-        }
-        
-        /* 隱藏 Scrollbar 但保持滑動功能 */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
 
-        /* 拖拽時的樣式 */
-        .sortable-ghost {
-            opacity: 0.4;
-            background-color: #FFF0F5;
+    <style>
+        body { background-color: #FFF9E3; color: #5D4037; overflow-x: hidden; }
+        .splash-screen {
+            position: fixed; inset: 0; z-index: 9999;
+            background: white url('splash.jpeg') no-repeat center center;
+            background-size: cover;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease;
         }
-        .sortable-drag {
-            transform: scale(1.05);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            cursor: grabbing;
-        }
-        
-        /* Loading 動畫 */
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 3px solid #FFD1DC;
-            width: 24px;
-            height: 24px;
-            -webkit-animation: spin 1s linear infinite; /* Safari */
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .fade-out { opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
 
-<div id="app" class="pb-24 max-w-md mx-auto bg-white min-h-screen relative shadow-2xl overflow-hidden">
-    
-    <div v-if="!supabaseConfigured" class="fixed inset-0 z-[100] bg-cream flex items-center justify-center p-6">
-        <div class="bg-white p-8 rounded-[30px] shadow-floating w-full max-w-sm text-center">
-            <h2 class="text-2xl font-bold text-sakura-dark mb-4">🌸 歡迎來到旅遊手帳</h2>
-            <p class="text-sm text-gray-500 mb-6">請輸入您的 Supabase 設定以連接資料庫</p>
-            
-            <input v-model="tempUrl" placeholder="Supabase URL" class="w-full mb-3 p-3 rounded-xl bg-gray-50 border border-sakura-main focus:outline-none focus:ring-2 focus:ring-sakura-dark">
-            <input v-model="tempKey" placeholder="Supabase Anon Key" class="w-full mb-6 p-3 rounded-xl bg-gray-50 border border-sakura-main focus:outline-none focus:ring-2 focus:ring-sakura-dark">
-            
-            <button @click="saveConfig" class="w-full bg-sakura-main text-white py-3 rounded-full font-bold shadow-soft active:scale-95 transition">
-                開始旅程 ✈️
-            </button>
+<div id="app">
+    <div :class="['splash-screen', { 'fade-out': !showSplash }]">
+        <div v-if="loading" class="mt-auto mb-20 bg-white/80 px-6 py-2 rounded-full backdrop-blur-sm">
+            <span class="text-sakura-dark font-bold animate-pulse">正在開啟手帳...</span>
         </div>
     </div>
 
-    <div v-else>
-        <header class="relative h-72">
-            <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=2070&auto=format&fit=crop" 
-                 class="w-full h-full object-cover brightness-90" alt="Cover">
-            
-            <div class="absolute top-12 left-6 text-white text-shadow">
-                <h1 class="text-3xl font-bold tracking-widest mb-1">{{ tripData.title || '我的日本之旅' }}</h1>
-                <p class="text-sm opacity-90">{{ tripData.dateRange || '2025.04.01 - 04.05' }}</p>
+    <div v-if="!isConnected" class="fixed inset-0 z-[100] bg-cream flex items-center justify-center p-6">
+        <div class="bg-white p-8 rounded-[30px] shadow-2xl w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-sakura-dark mb-4 text-center">連接資料庫 🌸</h2>
+            <div class="space-y-4">
+                <input v-model="config.url" placeholder="Supabase URL" class="w-full p-3 rounded-xl bg-gray-50 border border-sakura-main outline-none">
+                <input v-model="config.key" placeholder="Supabase Anon Key" type="password" class="w-full p-3 rounded-xl bg-gray-50 border border-sakura-main outline-none">
+                <button @click="connectSupabase" class="w-full bg-sakura-main text-white py-3 rounded-full font-bold">
+                    確認連線
+                </button>
+                <p v-if="errorMsg" class="text-red-400 text-xs text-center">{{ errorMsg }}</p>
             </div>
+        </div>
+    </div>
 
-            <button @click="showSettings = true" class="absolute top-12 right-6 text-white opacity-80 hover:opacity-100">
-                <i class="fa-solid fa-gear text-xl"></i>
-            </button>
+    <div v-if="isConnected" class="max-w-md mx-auto bg-white min-h-screen relative shadow-inner pb-20">
+        <header class="relative h-64 overflow-hidden">
+            <img src="header-bg(1).jpg" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800'">
+            <div class="absolute inset-0 bg-black/20"></div>
+            <div class="absolute bottom-14 left-6 text-white">
+                <h1 class="text-2xl font-bold tracking-widest">{{ trip.title || '讀取中...' }}</h1>
+                <p class="text-sm opacity-80">{{ trip.start_date }} - {{ trip.end_date }}</p>
+            </div>
         </header>
 
-        <div class="relative -mt-10 bg-white rounded-t-[40px] px-4 pt-8 min-h-[500px]">
-            
-            <div class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm py-2 mb-6 border-b border-gray-100 overflow-x-auto no-scrollbar flex space-x-6 px-2">
-                <button v-for="tab in tabs" :key="tab.id" 
-                        @click="currentTab = tab.id"
-                        class="flex flex-col items-center min-w-[50px] transition-all duration-300"
-                        :class="currentTab === tab.id ? 'text-sakura-dark scale-110' : 'text-gray-400'">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center mb-1 transition-colors"
-                         :class="currentTab === tab.id ? 'bg-sakura-light' : 'bg-transparent'">
-                        <i :class="tab.icon" class="text-xl"></i>
+        <div class="relative -mt-10 bg-white rounded-t-[40px] px-4 pt-8">
+            <div class="flex justify-between mb-8 px-2">
+                <button v-for="t in tabs" @click="currentTab = t.id" :class="['flex flex-col items-center gap-1', currentTab === t.id ? 'text-sakura-dark' : 'text-gray-300']">
+                    <div :class="['w-12 h-12 rounded-full flex items-center justify-center', currentTab === t.id ? 'bg-sakura-light' : '']">
+                        <i :class="['text-xl', t.icon]"></i>
                     </div>
-                    <span class="text-xs font-medium">{{ tab.name }}</span>
+                    <span class="text-[10px]">{{ t.name }}</span>
                 </button>
             </div>
 
-            <main>
-                <div v-if="currentTab === 'schedule'">
-                    <div class="flex space-x-3 overflow-x-auto no-scrollbar mb-6 pb-2">
-                        <button v-for="(day, index) in daysList" :key="index"
-                                @click="currentDayIndex = index"
-                                class="flex-shrink-0 px-4 py-2 rounded-2xl border transition-all"
-                                :class="currentDayIndex === index ? 'bg-sakura-main text-white border-sakura-main shadow-soft' : 'bg-white text-gray-400 border-gray-200'">
-                            <div class="text-xs text-center">Day {{ index + 1 }}</div>
-                            <div class="font-bold">{{ day.dateLabel }}</div>
-                        </button>
+            <div v-if="currentTab === 'schedule'" class="space-y-4">
+                <div v-for="item in schedules" :key="item.id" class="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex gap-4">
+                    <div class="text-center min-w-[50px]">
+                        <div class="font-bold text-gray-600">{{ item.start_time }}</div>
+                        <div class="text-[10px] text-gray-300">{{ item.end_time }}</div>
                     </div>
-
-                    <div ref="sortableList" class="space-y-4 pb-20">
-                        <div v-if="loading" class="text-center py-10 text-gray-400">
-                            <div class="loader mx-auto mb-2"></div>
-                            載入中...
-                        </div>
-                        
-                        <div v-else-if="currentDaySchedules.length === 0" class="text-center py-10 text-gray-300">
-                            <i class="fa-regular fa-calendar-xmark text-4xl mb-3"></i>
-                            <p>這天還沒有行程哦</p>
-                        </div>
-
-                        <div v-for="(item, index) in currentDaySchedules" :key="item.id" 
-                             :data-id="item.id"
-                             class="group relative bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 items-start active:scale-[0.98] transition-transform duration-200">
-                            
-                            <div class="flex flex-col items-center pt-1 min-w-[50px]">
-                                <input type="text" inputmode="numeric" 
-                                       :value="item.start_time" 
-                                       @change="updateTime($event, item, 'start_time')"
-                                       class="text-sm font-bold text-gray-600 w-12 text-center bg-transparent focus:bg-sakura-light rounded outline-none mb-1">
-                                <div class="h-full w-0.5 bg-gray-100 my-1 group-last:hidden"></div>
-                                <div class="text-[10px] text-gray-400 group-last:hidden">{{ item.end_time }}</div>
-                            </div>
-
-                            <div class="flex-1">
-                                <div v-if="item.type === 'transport'" class="bg-sky/10 p-3 rounded-xl border border-sky/20">
-                                    <div class="flex items-center text-sky-700 font-bold mb-1">
-                                        <i class="fa-solid fa-train-subway mr-2"></i>
-                                        <span>{{ item.from_station || '起點' }} ➜ {{ item.to_station || '終點' }}</span>
-                                    </div>
-                                    <p class="text-xs text-sky-600/70">{{ item.notes || '點擊編輯詳細交通資訊' }}</p>
-                                </div>
-
-                                <div v-else>
-                                    <h3 class="font-bold text-gray-700 text-lg mb-1">{{ item.title }}</h3>
-                                    <div class="flex items-center text-xs text-gray-400 space-x-3">
-                                        <span class="bg-cream text-cocoa px-2 py-0.5 rounded-md">{{ item.category || '景點' }}</span>
-                                        <span v-if="item.location"><i class="fa-solid fa-location-dot mr-1"></i>{{ item.location }}</span>
-                                    </div>
-                                    <div class="flex items-center mt-2 space-x-2">
-                                        <input type="text" inputmode="numeric" 
-                                            placeholder="60"
-                                            :value="parseDuration(item.duration)"
-                                            @change="updateDuration($event, item)"
-                                            class="w-10 text-center text-xs bg-gray-50 rounded border border-gray-200 py-1">
-                                        <span class="text-xs text-gray-400">分鐘</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="handle p-2 text-gray-300 cursor-grab touch-none">
-                                <i class="fa-solid fa-grip-lines"></i>
-                            </div>
-                        </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-700">{{ item.title }}</h3>
+                        <p class="text-xs text-gray-400">{{ item.location }}</p>
                     </div>
                 </div>
-
-                <div v-else class="text-center py-10">
-                    <div class="bg-white p-6 rounded-3xl shadow-soft mb-6">
-                        <i class="fa-solid fa-file-excel text-4xl text-green-500 mb-4"></i>
-                        <h3 class="font-bold text-lg mb-2">匯出行程表</h3>
-                        <p class="text-sm text-gray-400 mb-4">將行程轉為 Excel 格式分享給朋友</p>
-                        <button @click="exportExcel" class="bg-green-500 text-white px-6 py-2 rounded-full font-bold shadow-md active:scale-95 transition">
-                            下載 .xlsx
-                        </button>
-                    </div>
+                
+                <div v-if="schedules.length === 0" class="text-center py-20 text-gray-300">
+                    <p>目前沒有行程，請點擊下方 + 新增</p>
                 </div>
-            </main>
+            </div>
         </div>
 
-        <button @click="addItem" class="fixed bottom-6 right-6 w-14 h-14 bg-sakura-main text-white rounded-full shadow-floating flex items-center justify-center text-2xl active:scale-90 transition z-50">
+        <button class="fixed bottom-6 right-6 w-14 h-14 bg-sakura-main text-white rounded-full shadow-lg flex items-center justify-center text-xl">
             <i class="fa-solid fa-plus"></i>
         </button>
 
-        <div class="text-center text-[10px] text-gray-300 pb-4 mt-8">
-            🌸 Tiffany & Benjamin 🌸
-        </div>
+        <div class="text-center text-[10px] text-gray-200 mt-10 pb-4">🌸 Tiffany & Benjamin 🌸</div>
     </div>
 </div>
 
 <script>
-const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+const { createApp, ref, onMounted } = Vue;
 
 createApp({
     setup() {
-        // --- 狀態變數 ---
-        const supabaseConfigured = ref(false);
-        const tempUrl = ref('');
-        const tempKey = ref('');
+        const showSplash = ref(true);
+        const isConnected = ref(false);
         const loading = ref(false);
-        const supabase = ref(null);
+        const errorMsg = ref('');
+        const config = ref({ url: localStorage.getItem('sb_url') || '', key: localStorage.getItem('sb_key') || '' });
         
-        const showSettings = ref(false);
-        const currentTab = ref('schedule');
-        const currentDayIndex = ref(0);
-        
-        // 模擬數據 (若資料庫為空時使用)
-        const tripData = ref({ title: '東京櫻花季', start_date: '2025-04-01', end_date: '2025-04-05' });
+        const trip = ref({});
         const schedules = ref([]);
-        
+        const currentTab = ref('schedule');
         const tabs = [
             { id: 'schedule', name: '行程', icon: 'fa-solid fa-calendar-day' },
             { id: 'nav', name: '導航', icon: 'fa-solid fa-map-location-dot' },
             { id: 'voucher', name: '憑證', icon: 'fa-solid fa-ticket' },
             { id: 'list', name: '清單', icon: 'fa-solid fa-clipboard-check' },
-            { id: 'money', name: '記帳', icon: 'fa-solid fa-yen-sign' },
+            { id: 'money', name: '記帳', icon: 'fa-solid fa-yen-sign' }
         ];
 
-        // --- Supabase 初始化 ---
-        const initSupabase = () => {
-            const storedUrl = localStorage.getItem('sb_url');
-            const storedKey = localStorage.getItem('sb_key');
-            
-            if (storedUrl && storedKey) {
-                supabase.value = window.supabase.createClient(storedUrl, storedKey);
-                supabaseConfigured.value = true;
-                fetchData();
+        let supabase = null;
+
+        const connectSupabase = async () => {
+            if (!config.url || !config.key) {
+                errorMsg.value = '請填寫完整資訊';
+                return;
             }
-        };
-
-        const saveConfig = () => {
-            if(tempUrl.value && tempKey.value) {
-                localStorage.setItem('sb_url', tempUrl.value);
-                localStorage.setItem('sb_key', tempKey.value);
-                initSupabase();
-            }
-        };
-
-        // --- 資料邏輯 ---
-        const daysList = computed(() => {
-            // 簡單產生日期陣列
-            const days = [];
-            let curr = new Date(tripData.value.start_date);
-            const end = new Date(tripData.value.end_date);
-            while (curr <= end) {
-                const m = (curr.getMonth() + 1).toString().padStart(2, '0');
-                const d = curr.getDate().toString().padStart(2, '0');
-                const dayName = curr.toLocaleDateString('en-US', { weekday: 'short' });
-                days.push({ 
-                    date: curr.toISOString().split('T')[0],
-                    dateLabel: `${m}.${d} (${dayName})`
-                });
-                curr.setDate(curr.getDate() + 1);
-            }
-            return days;
-        });
-
-        const currentDaySchedules = computed(() => {
-            if (!daysList.value[currentDayIndex.value]) return [];
-            const targetDate = daysList.value[currentDayIndex.value].date;
-            return schedules.value
-                .filter(s => s.day_date === targetDate)
-                .sort((a, b) => a.sort_order - b.sort_order); // 依據 sort_order 排序
-        });
-
-        // --- Time Engine: 時間轉換與連動 ---
-        const timeToMinutes = (t) => {
-            if (!t) return 0;
-            const [h, m] = t.split(':').map(Number);
-            return h * 60 + m;
-        };
-
-        const minutesToTime = (m) => {
-            let h = Math.floor(m / 60) % 24;
-            let min = m % 60;
-            return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-        };
-
-        // 模糊輸入處理 (例如輸入 0930 -> 09:30)
-        const formatTimeInput = (val) => {
-            const clean = val.replace(/\D/g, '');
-            if (clean.length === 4) return `${clean.slice(0,2)}:${clean.slice(2,4)}`;
-            return val;
-        };
-
-        const updateScheduleChain = (list, startIndex = 0) => {
-            // 骨牌效應計算
-            for (let i = startIndex; i < list.length; i++) {
-                const curr = list[i];
-                const startM = timeToMinutes(curr.start_time);
-                // 處理 duration (PostgreSQL interval 轉為分鐘，這裡簡化處理)
-                const durM = parseDuration(curr.duration); 
-                
-                // 計算結束時間
-                curr.end_time = minutesToTime(startM + durM);
-
-                // 更新下一個項目的開始時間
-                if (list[i + 1]) {
-                    list[i + 1].start_time = curr.end_time;
-                }
-            }
-            // TODO: 此處應將更新後的數據寫回 Supabase
-        };
-
-        const parseDuration = (durStr) => {
-            // 假設 DB 存的是 "01:30" 或 interval 格式，這裡簡化為轉換成分鐘
-            if (!durStr) return 60; // 默認 60 分鐘
-            if (typeof durStr === 'number') return durStr;
-            // 簡單處理 "HH:mm:ss" 或 "HH:mm"
-            const parts = durStr.split(':');
-            return parseInt(parts[0])*60 + parseInt(parts[1]);
-        };
-
-        const updateTime = (e, item, field) => {
-            let val = formatTimeInput(e.target.value);
-            item[field] = val;
-            
-            // 找到該項目在當天列表中的 index
-            const list = currentDaySchedules.value;
-            const idx = list.findIndex(i => i.id === item.id);
-            if (idx !== -1) {
-                updateScheduleChain(list, idx);
-            }
-        };
-
-        const updateDuration = (e, item) => {
-            const mins = parseInt(e.target.value) || 60;
-            const h = Math.floor(mins/60);
-            const m = mins%60;
-            item.duration = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`;
-            
-            const list = currentDaySchedules.value;
-            const idx = list.findIndex(i => i.id === item.id);
-            if (idx !== -1) updateScheduleChain(list, idx);
-        };
-
-        // --- Drag & Drop 實作 ---
-        const sortableInstance = ref(null);
-        const sortableList = ref(null);
-
-        const initSortable = () => {
-            if (sortableList.value) {
-                sortableInstance.value = new Sortable(sortableList.value, {
-                    animation: 150,
-                    handle: ".handle", // 只能拖拽把手
-                    delay: 500,        // 長按 0.5 秒 (手機優化)
-                    delayOnTouchOnly: true,
-                    ghostClass: "sortable-ghost",
-                    dragClass: "sortable-drag",
-                    onEnd: (evt) => {
-                        // 重新排列數據順序
-                        const list = [...currentDaySchedules.value];
-                        const item = list.splice(evt.oldIndex, 1)[0];
-                        list.splice(evt.newIndex, 0, item);
-                        
-                        // 更新 sort_order 與時間連動
-                        list.forEach((item, index) => item.sort_order = index);
-                        updateScheduleChain(list, 0); // 從頭重新計算時間
-                        
-                        // 更新 UI 綁定的原始陣列 (這一步比較複雜，因為 schedules 是全量數據)
-                        // 這裡簡化：只更新當前 UI，實際需寫入 DB
-                    }
-                });
-            }
-        };
-
-        // --- Excel Export (Part 4 核心) ---
-        const exportExcel = () => {
-            const wb = XLSX.utils.book_new();
-            // 這裡實作 Part 4 的 15 分鐘矩陣邏輯 (簡化版)
-            const wsData = [["時間", ...daysList.value.map(d => d.dateLabel)]];
-            
-            // 產生 08:00 - 24:00 的刻度
-            for(let h=8; h<24; h++) {
-                wsData.push([`${String(h).padStart(2,'0')}:00`, ...daysList.value.map(() => "")]);
-                wsData.push([`${String(h).padStart(2,'0')}:30`, ...daysList.value.map(() => "")]);
-            }
-            
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            XLSX.utils.book_append_sheet(wb, ws, "行程表");
-            XLSX.writeFile(wb, `Our_Travel_Diary_${tripData.value.title}.xlsx`);
-        };
-
-        // --- 載入數據 Mock ---
-        const fetchData = async () => {
             loading.value = true;
-            // 實際應呼叫: const { data } = await supabase.value.from('schedules').select('*');
-            // 這裡使用 Mock 數據展示效果
-            setTimeout(() => {
-                schedules.value = [
-                    { id: 1, day_date: '2025-04-01', type: 'activity', title: '雷門', start_time: '10:00', duration: '01:00', location: '淺草', category: '景點', sort_order: 0 },
-                    { id: 2, day_date: '2025-04-01', type: 'transport', title: '移動', from_station: '淺草', to_station: '上野', start_time: '11:00', duration: '00:30', sort_order: 1 },
-                    { id: 3, day_date: '2025-04-01', type: 'activity', title: '阿美橫町', start_time: '11:30', duration: '02:00', location: '上野', category: '購物', sort_order: 2 },
-                ];
+            try {
+                supabase = window.supabase.createClient(config.url, config.key);
+                
+                // 測試連線：抓取第一筆旅遊資料
+                const { data, error } = await supabase.from('trips').select('*').limit(1).single();
+                
+                if (error) throw error;
+
+                trip.value = data;
+                localStorage.setItem('sb_url', config.url);
+                localStorage.setItem('sb_key', config.key);
+                
+                // 抓取行程
+                const { data: schData } = await supabase.from('schedules').select('*').order('sort_order');
+                schedules.value = schData || [];
+                
+                isConnected.value = true;
+                setTimeout(() => { showSplash.value = false; }, 1000);
+            } catch (err) {
+                errorMsg.value = '連線失敗：' + err.message;
+                console.error(err);
+            } finally {
                 loading.value = false;
-                nextTick(() => initSortable());
-            }, 800);
+            }
         };
 
         onMounted(() => {
-            initSupabase();
-        });
-
-        watch(currentTab, (newVal) => {
-            if(newVal === 'schedule') {
-                nextTick(() => initSortable());
+            if (config.url && config.key) {
+                connectSupabase();
+            } else {
+                // 如果沒資料，3秒後自動關閉 Splash 讓用戶輸入
+                setTimeout(() => { showSplash.value = false; }, 3000);
             }
         });
 
-        watch(currentDayIndex, () => {
-            nextTick(() => initSortable());
-        });
-
-        return {
-            supabaseConfigured, tempUrl, tempKey, saveConfig,
-            tripData, daysList, currentTab, tabs, currentDayIndex,
-            currentDaySchedules, updateTime, updateDuration, parseDuration,
-            loading, sortableList, addItem: () => alert('開啟新增視窗 (尚未實作)'),
-            exportExcel, showSettings
-        };
+        return { showSplash, isConnected, loading, config, errorMsg, connectSupabase, trip, schedules, currentTab, tabs };
     }
-});
+}).mount('#app');
 </script>
 </body>
 </html>

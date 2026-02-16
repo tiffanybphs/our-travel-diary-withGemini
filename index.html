@@ -17,9 +17,12 @@
                     fontFamily: { sans: ['"Zen Maru Gothic"', 'sans-serif'] },
                     colors: {
                         sakura: { light: '#FFF0F5', main: '#FFD1DC', dark: '#FFB7C5' },
-                        cream: '#FFF9E3', sky: '#B0E0E6', cocoa: '#8B4513'
+                        cream: '#FFF9E3', cocoa: '#8B4513'
                     },
-                    boxShadow: { 'soft': '0 4px 20px -2px rgba(255, 209, 220, 0.4)' }
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(255, 209, 220, 0.4)',
+                        'floating': '0 -10px 40px -10px rgba(0,0,0,0.08)'
+                    }
                 }
             }
         }
@@ -34,7 +37,7 @@
     <style>
         body { background-color: #FFF9E3; color: #5D4037; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         
-        /* 啟動畫面 Splash Screen */
+        /* Splash Screen */
         .splash-screen {
             position: fixed; inset: 0; z-index: 9999;
             background: white url('splash.jpeg') no-repeat center center;
@@ -46,14 +49,13 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 動畫特效 */
-        @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* 動畫設定 */
+        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        /* 風琴式展開過場 (Accordion Transition) */
-        .accordion-enter-active, .accordion-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; }
-        .accordion-enter-from, .accordion-leave-to { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; border-top-width: 0; }
-        .accordion-enter-to, .accordion-leave-from { max-height: 600px; opacity: 1; }
+        /* 拖曳樣式 (Part 2/3) */
+        .sortable-ghost { opacity: 0.4; background-color: #FFF0F5; border-radius: 1rem; }
+        .sortable-drag { transform: scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 1rem; }
     </style>
 </head>
 <body>
@@ -61,27 +63,27 @@
 <div id="app">
     <div :class="['splash-screen', { 'fade-out': !showSplash }]"></div>
 
-    <div class="max-w-md mx-auto bg-white min-h-screen relative shadow-2xl pb-24 overflow-hidden flex flex-col">
+    <div class="max-w-md mx-auto bg-white min-h-screen relative shadow-2xl pb-24 overflow-hidden">
         
-        <header class="relative h-64 shrink-0">
+        <header class="relative h-64">
             <img src="header-bg(1).jpg" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800'">
             <div class="absolute inset-0 bg-black/15"></div>
             
-            <button @click="showSettings = true" class="absolute top-5 right-3 w-8 h-8 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white text-sm hover:bg-white/40 transition">
+            <button @click="showSettings = true" class="absolute top-4 right-3 w-8 h-8 flex items-center justify-center bg-white/30 backdrop-blur-md rounded-full text-white text-sm hover:bg-white/50 transition z-50">
                 <i class="fa-solid fa-gear"></i>
             </button>
 
             <div class="absolute bottom-12 left-6 text-white text-shadow drop-shadow-md">
-                <h1 class="text-3xl font-bold tracking-widest mb-1">{{ trip.title || '我的旅遊手帳' }}</h1>
-                <p class="text-xs font-medium opacity-95" v-if="trip.start_date">{{ trip.start_date }} ➜ {{ trip.end_date }}</p>
+                <h1 class="text-3xl font-bold tracking-widest mb-1">{{ trip.title || '我的櫻花季' }}</h1>
+                <p class="text-xs opacity-90 font-medium" v-if="trip.start_date">{{ trip.start_date }} ➜ {{ trip.end_date }}</p>
             </div>
         </header>
 
-        <div class="relative -mt-8 bg-white rounded-t-[35px] px-5 pt-6 flex-1 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-10">
+        <div class="relative -mt-8 bg-white rounded-t-[32px] px-5 pt-6 min-h-[600px] shadow-floating">
             
-            <div class="sticky top-0 z-40 bg-white/95 backdrop-blur-md py-3 mb-4 border-b border-sakura-light flex justify-between px-1">
-                <button v-for="t in tabs" :key="t.id" @click="currentTab = t.id" :class="['flex flex-col items-center gap-1.5 transition-all duration-300', currentTab === t.id ? 'text-sakura-dark scale-110' : 'text-gray-300']">
-                    <div :class="['w-11 h-11 rounded-full flex items-center justify-center transition-colors', currentTab === t.id ? 'bg-sakura-light shadow-soft' : '']">
+            <div class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm py-2 mb-6 border-b border-sakura-light flex justify-between px-1">
+                <button v-for="t in tabs" :key="t.id" @click="currentTab = t.id" :class="['flex flex-col items-center gap-1 transition-all duration-300', currentTab === t.id ? 'text-sakura-dark scale-110' : 'text-gray-300']">
+                    <div :class="['w-10 h-10 rounded-full flex items-center justify-center', currentTab === t.id ? 'bg-sakura-light shadow-sm' : '']">
                         <i :class="['text-lg', t.icon]"></i>
                     </div>
                     <span class="text-[10px] font-bold">{{ t.name }}</span>
@@ -89,156 +91,181 @@
             </div>
 
             <div v-if="!isConnected" class="py-20 text-center">
-                <i class="fa-solid fa-link-slash text-5xl text-sakura-light mb-4"></i>
-                <h3 class="text-lg font-bold text-gray-400 mb-2">等待連接資料庫 🌸</h3>
-                <p class="text-xs text-gray-400 mb-8">請點擊右上角小齒輪，綁定您的專屬行程</p>
-                <button @click="showSettings = true" class="px-8 py-3 bg-sakura-main text-white rounded-full font-bold text-sm shadow-soft active:scale-95 transition">
-                    開啟設定
-                </button>
+                <i class="fa-solid fa-link-slash text-5xl text-gray-200 mb-4"></i>
+                <h3 class="text-lg font-bold text-gray-400 mb-2">等待連線中...</h3>
+                <p class="text-xs text-gray-400 mb-6">請點擊右上角小齒輪，連接資料庫 🌸</p>
             </div>
 
-            <div v-else-if="currentTab === 'schedule'" class="space-y-4 pb-10">
-                <div v-if="schedules.length === 0" class="text-center py-16 text-gray-300 text-sm">
-                    <div class="bg-cream w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-regular fa-calendar-plus text-3xl text-sakura-dark"></i>
+            <div v-else-if="currentTab === 'schedule'" class="space-y-4 pb-10" ref="sortableList">
+                <div v-if="schedules.length === 0" class="text-center py-16 text-gray-300">
+                    <div class="bg-sakura-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-map-location-dot text-2xl text-sakura-dark"></i>
                     </div>
-                    <p class="font-medium text-gray-400">目前沒有行程<br>請點擊右下角 ＋ 開始規劃吧！</p>
+                    <p class="font-medium">這天還沒有行程喔</p>
+                    <p class="text-xs mt-1">點擊右下角新增第一站吧！</p>
                 </div>
-
-                <div v-for="item in schedules" :key="item.id" class="group bg-white border-2 border-sakura-light/50 p-4 rounded-[20px] shadow-sm flex gap-4 items-start relative">
-                    <div class="text-center min-w-[50px] pt-1 flex flex-col items-center">
-                        <div class="font-bold text-cocoa text-sm">{{ item.start_time?.slice(0,5) || '00:00' }}</div>
-                        <div class="h-6 w-[2px] bg-sakura-main/30 rounded-full my-1.5"></div>
-                        <div class="text-[10px] font-bold text-gray-400">{{ calculateEndTime(item.start_time, item.duration) }}</div>
+                
+                <div v-for="item in schedules" :key="item.id" :data-id="item.id" class="group bg-white border border-gray-100 p-4 rounded-3xl shadow-sm flex gap-4 items-stretch relative overflow-hidden">
+                    
+                    <div class="flex flex-col items-center justify-center min-w-[50px] z-10">
+                        <div class="font-bold text-cocoa text-sm">{{ item.start_time?.slice(0,5) }}</div>
+                        <div class="h-6 w-0.5 bg-sakura-main/30 my-1 rounded-full"></div>
+                        <div class="text-[10px] text-gray-400 font-medium">{{ item.end_time?.slice(0,5) }}</div>
                     </div>
-                    <div class="flex-1">
-                        <div v-if="item.type === 'transport'" class="bg-sky/15 p-3.5 rounded-2xl border border-sky/30">
+
+                    <div class="flex-1 py-1 z-10">
+                        <div v-if="item.type === 'transport'" class="bg-sky-50/50 p-3 rounded-2xl border border-sky-100 h-full flex flex-col justify-center">
                             <div class="text-sky-700 font-bold text-sm mb-1 flex items-center">
-                                <i class="fa-solid fa-train-subway mr-2 text-lg"></i>{{ item.title }}
+                                <i class="fa-solid fa-train-subway mr-2 text-sky-500"></i>{{ item.title }}
                             </div>
-                            <div class="text-[10px] text-sky-600/80 font-medium">交通移動 • {{ item.duration }} 分鐘</div>
+                            <p class="text-[11px] text-sky-600/70" v-if="item.notes">{{ item.notes }}</p>
                         </div>
-                        <div v-else>
-                            <h4 class="font-bold text-gray-700 text-[15px] mb-1.5">{{ item.title }}</h4>
-                            <div class="flex items-center gap-2">
-                                <span class="bg-cream text-cocoa text-[10px] px-2 py-0.5 rounded-md font-bold">{{ item.duration }} 分鐘</span>
-                                <span class="text-[10px] text-gray-400 font-medium" v-if="item.location">
-                                    <i class="fa-solid fa-location-dot mr-1 text-sakura-dark"></i>{{ item.location }}
-                                </span>
+                        
+                        <div v-else class="h-full flex flex-col justify-center">
+                            <h4 class="font-bold text-gray-700 text-base leading-tight mb-1.5">{{ item.title }}</h4>
+                            <div class="flex items-center gap-3 text-[11px] text-gray-400">
+                                <span class="bg-cream px-2 py-0.5 rounded-md text-cocoa"><i class="fa-regular fa-clock mr-1"></i>{{ item.duration }} 分鐘</span>
+                                <span class="truncate" v-if="item.location"><i class="fa-solid fa-location-dot text-sakura-main mr-1"></i>{{ item.location }}</span>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="handle absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center text-gray-200 cursor-grab touch-none active:bg-gray-50 transition-colors">
+                        <i class="fa-solid fa-grip-vertical"></i>
                     </div>
                 </div>
             </div>
             
-            <div v-else-if="currentTab === 'list'" class="text-center py-12">
-                <div class="bg-white p-8 border-2 border-sakura-light/50 rounded-[30px] shadow-soft">
-                    <i class="fa-solid fa-file-excel text-5xl text-[#217346] mb-5"></i>
-                    <h3 class="font-bold text-gray-700 mb-2 text-lg">一鍵匯出行程表</h3>
-                    <p class="text-xs text-gray-400 mb-8 leading-relaxed">將行程轉為 15 分鐘一格的 Excel 格式<br>方便列印或分享給旅伴</p>
-                    <button @click="exportExcel" class="bg-[#217346] text-white w-full py-3.5 rounded-full font-bold shadow-md active:scale-95 transition text-sm">
-                        下載 Excel 檔案
+            <div v-else-if="currentTab === 'list'" class="text-center py-10">
+                <div class="bg-white p-6 border border-sakura-light rounded-3xl shadow-sm">
+                    <i class="fa-solid fa-file-excel text-5xl text-green-500 mb-4 drop-shadow-sm"></i>
+                    <h3 class="font-bold text-gray-700 mb-2">匯出專屬行程表</h3>
+                    <p class="text-xs text-gray-400 mb-6">將目前安排轉為 15 分鐘刻度的 Excel 檔案，方便與旅伴分享！</p>
+                    <button @click="exportExcel" class="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-md active:scale-95 text-sm w-full transition-transform">
+                        一鍵下載 .xlsx
                     </button>
                 </div>
             </div>
         </div>
 
-        <transition name="accordion">
-            <div v-if="showAddDrawer" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[35px] shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-[60] border-t border-sakura-light pt-2 pb-8 px-6">
-                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
-                
-                <h3 class="font-bold text-sakura-dark text-lg mb-5 flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square"></i> 新增行程
-                </h3>
-                
-                <div class="space-y-4">
-                    <div class="flex gap-3">
-                        <button @click="newItem.type = 'activity'" :class="['flex-1 py-2.5 rounded-xl font-bold text-sm transition', newItem.type === 'activity' ? 'bg-sakura-main text-white' : 'bg-gray-50 text-gray-400']">
-                            <i class="fa-solid fa-camera mr-1"></i> 景點活動
-                        </button>
-                        <button @click="newItem.type = 'transport'" :class="['flex-1 py-2.5 rounded-xl font-bold text-sm transition', newItem.type === 'transport' ? 'bg-sky text-white' : 'bg-gray-50 text-gray-400']">
-                            <i class="fa-solid fa-train-subway mr-1"></i> 交通移動
-                        </button>
-                    </div>
-
-                    <input v-model="newItem.title" :placeholder="newItem.type === 'activity' ? '例如：淺草寺穿和服' : '例如：搭乘銀座線至上野'" class="w-full p-3.5 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-sakura-main transition">
-                    
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <label class="text-[10px] text-gray-400 font-bold ml-1">開始時間</label>
-                            <input v-model="newItem.start_time" type="time" class="w-full p-3 mt-1 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-sakura-main transition">
-                        </div>
-                        <div class="flex-1">
-                            <label class="text-[10px] text-gray-400 font-bold ml-1">停留時間 (分鐘)</label>
-                            <input v-model.number="newItem.duration" type="number" placeholder="60" class="w-full p-3 mt-1 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-sakura-main transition">
-                        </div>
-                    </div>
-                    
-                    <input v-if="newItem.type === 'activity'" v-model="newItem.location" placeholder="地點 (選填)" class="w-full p-3.5 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-sakura-main transition">
-
-                    <div class="flex gap-3 mt-6 pt-2">
-                        <button @click="showAddDrawer = false" class="flex-1 py-3.5 rounded-full font-bold text-sm bg-gray-100 text-gray-500 active:scale-95 transition">取消</button>
-                        <button @click="saveNewSchedule" class="flex-[2] py-3.5 rounded-full font-bold text-sm bg-sakura-main text-white shadow-soft active:scale-95 transition">
-                            <i class="fa-solid fa-check mr-1"></i> 儲存至手帳
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </transition>
-
-        <div v-if="showAddDrawer" @click="showAddDrawer = false" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-[50]"></div>
-
-        <button v-if="isConnected && !showAddDrawer && currentTab === 'schedule'" @click="openAddDrawer" class="fixed bottom-6 right-6 w-[60px] h-[60px] bg-sakura-main text-white rounded-full shadow-[0_10px_25px_rgba(255,183,197,0.6)] flex items-center justify-center text-2xl active:scale-90 transition-transform duration-300 z-[45]">
+        <button v-if="isConnected" @click="openAddModal" class="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-sakura-main to-sakura-dark text-white rounded-full shadow-lg shadow-sakura-main/40 flex items-center justify-center text-2xl active:scale-90 transition-transform z-40">
             <i class="fa-solid fa-plus"></i>
         </button>
+
+        <div class="text-center text-[10px] text-gray-300 mt-4 pb-8 font-medium tracking-wide">🌸 Tiffany & Benjamin 🌸</div>
     </div>
 
-    <div v-if="showSettings" class="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center">
-        <div class="bg-white w-full max-w-sm rounded-t-[35px] sm:rounded-[30px] p-8 shadow-2xl animate-slide-up pb-12">
+    <div v-if="showAddModal" class="fixed inset-0 z-[100] bg-cocoa/20 backdrop-blur-sm flex items-end justify-center">
+        <div class="absolute inset-0" @click="showAddModal = false"></div>
+        
+        <div class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-floating animate-slide-up relative z-10 max-h-[85vh] overflow-y-auto no-scrollbar">
+            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-5"></div>
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-sakura-dark">連線設定 ⚙️</h2>
-                <button @click="showSettings = false" class="text-gray-300 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h2 class="text-xl font-bold text-cocoa">新增行程 ✏️</h2>
+                <button @click="showAddModal = false" class="w-8 h-8 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-4 pb-6">
+                <div class="flex bg-gray-50 p-1 rounded-2xl mb-2">
+                    <button @click="newItem.type = 'activity'" :class="['flex-1 py-2 text-sm font-bold rounded-xl transition-all', newItem.type === 'activity' ? 'bg-white shadow-sm text-sakura-dark' : 'text-gray-400']">🏞️ 景點活動</button>
+                    <button @click="newItem.type = 'transport'" :class="['flex-1 py-2 text-sm font-bold rounded-xl transition-all', newItem.type === 'transport' ? 'bg-white shadow-sm text-sky-500' : 'text-gray-400']">🚆 交通移動</button>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-gray-400 ml-2 font-bold">{{ newItem.type === 'activity' ? '景點名稱' : '交通方式 (例：地鐵銀座線)' }}</label>
+                    <input v-model="newItem.title" placeholder="請輸入標題..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white transition-colors font-bold text-gray-700">
+                </div>
+
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 ml-2 font-bold">開始時間</label>
+                        <input v-model="newItem.start_time" type="time" class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white font-bold text-cocoa">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 ml-2 font-bold">預計停留 (分鐘)</label>
+                        <input v-model="newItem.duration" type="number" placeholder="60" class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white font-bold text-cocoa text-center">
+                    </div>
+                </div>
+
+                <button @click="isAccordionOpen = !isAccordionOpen" class="w-full py-3 flex items-center justify-center gap-2 text-xs font-bold text-sakura-dark bg-sakura-light/50 rounded-2xl mt-2 transition-colors">
+                    {{ isAccordionOpen ? '收起詳細設定' : '🔽 展開詳細設定 (地點、備註)' }}
+                </button>
+
+                <div v-show="isAccordionOpen" class="space-y-4 pt-2 border-t border-gray-50 transition-all duration-300">
+                    <div>
+                        <label class="text-[10px] text-gray-400 ml-2 font-bold">地點 / 地址</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-location-dot absolute left-4 top-4 text-gray-300"></i>
+                            <input v-model="newItem.location" placeholder="搜尋或輸入地址..." class="w-full pl-10 p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-400 ml-2 font-bold">備註說明</label>
+                        <textarea v-model="newItem.notes" rows="2" placeholder="門票資訊、月台號碼..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white resize-none"></textarea>
+                    </div>
+                </div>
+
+                <button @click="saveSchedule" :disabled="isSaving" class="w-full bg-sakura-main text-white py-4 mt-4 rounded-2xl font-bold shadow-soft active:scale-95 transition-transform flex justify-center items-center">
+                    <span v-if="!isSaving">儲存行程 🌸</span>
+                    <span v-else><i class="fa-solid fa-circle-notch animate-spin mr-2"></i>儲存中...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="showSettings" class="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm flex items-end justify-center">
+        <div class="bg-white w-full max-w-sm rounded-t-[32px] p-8 shadow-2xl animate-slide-up pb-12 relative">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-cocoa">資料庫設定 ⚙️</h2>
+                <button @click="showSettings = false" class="w-8 h-8 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
             <div class="space-y-4">
                 <div>
-                    <label class="text-[10px] text-gray-400 font-bold ml-2">Supabase URL</label>
-                    <input v-model="config.url" placeholder="https://..." class="w-full p-3.5 mt-1 text-sm rounded-xl bg-gray-50 border border-gray-100 focus:border-sakura-main focus:ring-2 focus:ring-sakura-light outline-none transition">
+                    <label class="text-[10px] text-gray-400 ml-2 font-bold">SUPABASE URL</label>
+                    <input v-model="config.url" placeholder="https://..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none text-gray-600">
                 </div>
                 <div>
-                    <label class="text-[10px] text-gray-400 font-bold ml-2">Anon Key</label>
-                    <input v-model="config.key" type="password" placeholder="ey..." class="w-full p-3.5 mt-1 text-sm rounded-xl bg-gray-50 border border-gray-100 focus:border-sakura-main focus:ring-2 focus:ring-sakura-light outline-none transition">
+                    <label class="text-[10px] text-gray-400 ml-2 font-bold">ANON KEY</label>
+                    <input v-model="config.key" type="password" placeholder="ey..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none text-gray-600">
                 </div>
                 
-                <button @click="connectSupabase" :disabled="loading" class="w-full bg-sakura-main text-white py-4 mt-4 rounded-full font-bold shadow-soft active:scale-95 transition">
+                <button @click="connectSupabase" :disabled="loading" class="w-full bg-sakura-dark text-white py-3.5 mt-2 rounded-2xl font-bold shadow-soft active:scale-95 transition">
                     <span v-if="!loading">確認連線</span>
                     <span v-else><i class="fa-solid fa-circle-notch animate-spin mr-2"></i>連線中...</span>
                 </button>
                 
-                <p v-if="errorMsg" class="text-red-400 text-xs text-center font-bold mt-2 bg-red-50 p-3 rounded-xl">{{ errorMsg }}</p>
-                <p v-if="isConnected" class="text-green-500 text-xs text-center font-bold mt-2">✅ 已成功連接資料庫</p>
+                <p v-if="errorMsg" class="text-red-400 text-xs text-center font-medium mt-2 bg-red-50 p-2 rounded-lg">{{ errorMsg }}</p>
+                <p v-if="isConnected" class="text-green-500 text-xs text-center mt-2 font-bold">✅ 已成功連接</p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const { createApp, ref, reactive, onMounted } = Vue;
+const { createApp, ref, onMounted, nextTick, watch } = Vue;
 
 createApp({
     setup() {
         const showSplash = ref(true);
         const showSettings = ref(false);
-        const showAddDrawer = ref(false); // 控制風琴式展開
         const isConnected = ref(false);
         const loading = ref(false);
         const errorMsg = ref('');
         
-        const config = reactive({ url: localStorage.getItem('sb_url') || '', key: localStorage.getItem('sb_key') || '' });
+        // ➕ 新增行程的狀態
+        const showAddModal = ref(false);
+        const isAccordionOpen = ref(false);
+        const isSaving = ref(false);
+        const newItem = ref({ type: 'activity', title: '', start_time: '10:00', duration: '60', location: '', notes: '' });
         
+        const config = ref({ url: localStorage.getItem('sb_url') || '', key: localStorage.getItem('sb_key') || '' });
         const trip = ref({});
         const schedules = ref([]);
         const currentTab = ref('schedule');
+        const sortableList = ref(null);
+        let sortableInstance = null;
+
         const tabs = [
             { id: 'schedule', name: '行程', icon: 'fa-solid fa-calendar-day' },
             { id: 'nav', name: '導航', icon: 'fa-solid fa-map-location-dot' },
@@ -247,125 +274,148 @@ createApp({
             { id: 'money', name: '記帳', icon: 'fa-solid fa-yen-sign' }
         ];
 
-        // 新增行程的表單狀態
-        const newItem = reactive({ type: 'activity', title: '', start_time: '10:00', duration: 60, location: '' });
-
         let supabase = null;
 
-        // --- Supabase 連線邏輯 ---
+        // --- 核心時間推算引擎 (Part 3) ---
+        const timeToMinutes = (t) => {
+            if (!t) return 0;
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        };
+        const minutesToTime = (m) => {
+            let h = Math.floor(m / 60) % 24;
+            let min = m % 60;
+            return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`;
+        };
+        const updateTimeChain = () => {
+            // 根據順序與 duration 自動推算 end_time 與下一個的 start_time
+            let currentMins = 0;
+            schedules.value.forEach((item, index) => {
+                if (index === 0 || item.is_fixed_time) {
+                    currentMins = timeToMinutes(item.start_time);
+                } else {
+                    item.start_time = minutesToTime(currentMins).slice(0,5); // 前端顯示用
+                }
+                const dur = parseInt(item.duration) || 60;
+                currentMins += dur;
+                item.end_time = minutesToTime(currentMins).slice(0,5);
+            });
+        };
+
+        // --- 初始化拖曳 (Part 2) ---
+        const initSortable = () => {
+            if (sortableList.value && !sortableInstance) {
+                sortableInstance = new Sortable(sortableList.value, {
+                    handle: '.handle', animation: 200, delay: 200, delayOnTouchOnly: true,
+                    ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+                    onEnd: async (evt) => {
+                        // 更新陣列順序
+                        const item = schedules.value.splice(evt.oldIndex, 1)[0];
+                        schedules.value.splice(evt.newIndex, 0, item);
+                        updateTimeChain(); // 觸發時間聯動
+                        
+                        // 準備回寫 DB (更新 sort_order)
+                        const updates = schedules.value.map((s, idx) => ({
+                            id: s.id, sort_order: idx, start_time: s.start_time + ':00', end_time: s.end_time + ':00'
+                        }));
+                        await supabase.from('schedules').upsert(updates);
+                    }
+                });
+            }
+        };
+
+        // --- 連線邏輯 ---
         const connectSupabase = async () => {
             errorMsg.value = '';
-            let rawUrl = config.url.trim().replace(/\.+$/, '').replace(/\/+$/, '');
-            let rawKey = config.key.trim();
-
+            let rawUrl = config.value.url.trim().replace(/\.+$/, '').replace(/\/+$/, '');
+            let rawKey = config.value.key.trim();
             if (!rawUrl || !rawKey) { errorMsg.value = '請填寫完整資訊'; return; }
-            if (!rawUrl.startsWith('https://')) { errorMsg.value = 'URL 必須以 https:// 開頭'; return; }
-
             loading.value = true;
+
             try {
                 supabase = window.supabase.createClient(rawUrl, rawKey);
-                
-                // 測試連線與自動初始化資料庫
                 const { data: tripData, error: tripError } = await supabase.from('trips').select('*').limit(1);
-                
-                if (tripError) throw new Error('連線失敗：請確定 RLS 權限已關閉或 Table 已建立。');
+                if (tripError) throw tripError;
 
                 if (!tripData || tripData.length === 0) {
-                    const { data: newTrip } = await supabase.from('trips').insert([{ title: '我們的櫻花之旅', start_date: '2025-04-01', end_date: '2025-04-05' }]).select();
+                    const { data: newTrip } = await supabase.from('trips').insert([{ title: '我的櫻花季', start_date: '2025-04-01', end_date: '2025-04-05' }]).select();
                     trip.value = newTrip[0];
-                } else {
-                    trip.value = tripData[0];
-                }
+                } else { trip.value = tripData[0]; }
 
-                await fetchSchedules();
+                const { data: schData } = await supabase.from('schedules').select('*').order('sort_order');
+                schedules.value = schData || [];
+                updateTimeChain();
                 
                 localStorage.setItem('sb_url', rawUrl);
                 localStorage.setItem('sb_key', rawKey);
                 isConnected.value = true;
-                setTimeout(() => { showSettings.value = false; }, 800);
+                setTimeout(() => { showSettings.value = false; nextTick(() => initSortable()); }, 500);
             } catch (err) {
-                errorMsg.value = err.message;
-            } finally {
-                loading.value = false;
-            }
+                errorMsg.value = '連線失敗，請檢查資料或 RLS 權限設定';
+            } finally { loading.value = false; }
         };
 
-        const fetchSchedules = async () => {
-            const { data } = await supabase.from('schedules').select('*').order('sort_order', { ascending: true });
-            schedules.value = data || [];
-        };
-
-        // --- 新增行程邏輯 (Part 2: Time Engine) ---
-        const openAddDrawer = () => {
-            // 智慧預設時間：抓取最後一個行程的結束時間
+        // --- 新增行程 ---
+        const openAddModal = () => {
+            // 自動帶入上一個行程的結束時間
             if (schedules.value.length > 0) {
-                const lastItem = schedules.value[schedules.value.length - 1];
-                newItem.start_time = calculateEndTime(lastItem.start_time, lastItem.duration);
-            }
-            newItem.title = ''; newItem.location = ''; newItem.duration = 60;
-            showAddDrawer.value = true;
-        };
-
-        const saveNewSchedule = async () => {
-            if (!newItem.title) { alert('請輸入標題'); return; }
-            
-            const scheduleData = {
-                trip_id: trip.value.id,
-                title: newItem.title,
-                type: newItem.type,
-                start_time: newItem.start_time,
-                duration: newItem.duration, // 存入分鐘數
-                location: newItem.location,
-                sort_order: schedules.value.length // 排在最後面
-            };
-
-            const { data, error } = await supabase.from('schedules').insert([scheduleData]).select();
-            if (!error && data) {
-                schedules.value.push(data[0]);
-                showAddDrawer.value = false; // 關閉風琴面板
+                newItem.value.start_time = schedules.value[schedules.value.length - 1].end_time;
             } else {
-                alert('新增失敗，請檢查網路或資料庫設定');
+                newItem.value.start_time = '09:00';
             }
+            newItem.value.title = ''; newItem.value.location = ''; newItem.value.notes = '';
+            isAccordionOpen.value = false;
+            showAddModal.value = true;
         };
 
-        // --- 時間計算輔助函數 ---
-        const calculateEndTime = (startStr, durationMins) => {
-            if (!startStr) return '00:00';
-            const [h, m] = startStr.split(':').map(Number);
-            const totalMins = h * 60 + m + (Number(durationMins) || 0);
-            const endH = Math.floor(totalMins / 60) % 24;
-            const endM = totalMins % 60;
-            return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+        const saveSchedule = async () => {
+            if (!newItem.value.title) return alert("請輸入標題");
+            isSaving.value = true;
+            try {
+                const insertData = {
+                    trip_id: trip.value.id,
+                    title: newItem.value.title,
+                    type: newItem.value.type,
+                    start_time: newItem.value.start_time + ':00',
+                    duration: newItem.value.duration,
+                    location: newItem.value.location,
+                    notes: newItem.value.notes,
+                    sort_order: schedules.value.length
+                };
+                const { data, error } = await supabase.from('schedules').insert([insertData]).select();
+                if (error) throw error;
+                
+                schedules.value.push(data[0]);
+                updateTimeChain();
+                showAddModal.value = false;
+            } catch(e) { alert("儲存失敗：" + e.message); } 
+            finally { isSaving.value = false; }
         };
 
-        // --- Excel 匯出 (Part 4) ---
+        // --- 匯出 Excel (Part 4) ---
         const exportExcel = () => {
-            if(!isConnected.value || schedules.value.length === 0) { alert("請先新增行程再匯出！"); return; }
             const wb = XLSX.utils.book_new();
-            const wsData = [["開始時間", "結束時間", "類型", "行程內容", "地點"]];
-            
+            const wsData = [["時間", "行程內容", "地點", "備註"]];
             schedules.value.forEach(s => {
-                const end = calculateEndTime(s.start_time, s.duration);
-                const typeStr = s.type === 'transport' ? '🚆 交通' : '📸 景點';
-                wsData.push([s.start_time?.slice(0,5), end, typeStr, s.title, s.location || '']);
+                wsData.push([s.start_time?.slice(0,5) || '', s.title || '', s.location || '', s.notes || '']);
             });
-            
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-            
-            // 設定欄寬
-            ws['!cols'] = [{wch: 10}, {wch: 10}, {wch: 10}, {wch: 30}, {wch: 20}];
+            ws['!cols'] = [{wch: 8}, {wch: 20}, {wch: 15}, {wch: 25}];
             XLSX.utils.book_append_sheet(wb, ws, "行程表");
             XLSX.writeFile(wb, `Our_Travel_Diary_${trip.value.title}.xlsx`);
         };
 
+        watch(currentTab, (newVal) => { if(newVal === 'schedule' && isConnected.value) nextTick(() => initSortable()); });
+
         onMounted(() => {
-            if (config.url && config.key) { connectSupabase(); }
-            setTimeout(() => { showSplash.value = false; }, 2500);
+            if (config.value.url && config.value.key) connectSupabase();
+            setTimeout(() => { showSplash.value = false; }, 2000);
         });
 
         return { 
-            showSplash, showSettings, showAddDrawer, isConnected, loading, config, errorMsg, connectSupabase, 
-            trip, schedules, currentTab, tabs, newItem, openAddDrawer, saveNewSchedule, calculateEndTime, exportExcel 
+            showSplash, showSettings, showAddModal, isAccordionOpen, isConnected, loading, isSaving, 
+            config, errorMsg, newItem, trip, schedules, currentTab, tabs, sortableList, 
+            connectSupabase, openAddModal, saveSchedule, exportExcel 
         };
     }
 }).mount('#app');

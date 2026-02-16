@@ -16,12 +16,8 @@
                 extend: {
                     fontFamily: { sans: ['"Zen Maru Gothic"', 'sans-serif'] },
                     colors: {
-                        sakura: { light: '#FFF0F5', main: '#FFD1DC', dark: '#FFB7C5' },
-                        cream: '#FFF9E3', cocoa: '#8B4513'
-                    },
-                    boxShadow: {
-                        'soft': '0 4px 20px -2px rgba(255, 209, 220, 0.4)',
-                        'floating': '0 -10px 40px -10px rgba(0,0,0,0.08)'
+                        sakura: { light: '#FFF0F5', main: '#FFD1DC', dark: '#FFB7C5', text: '#D87093' },
+                        cream: '#FFF9E3', cocoa: '#8B4513', sky: '#E0F2FE'
                     }
                 }
             }
@@ -32,12 +28,9 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
-        body { background-color: #FFF9E3; color: #5D4037; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-        
-        /* Splash Screen */
+        body { background-color: #FFF9E3; color: #5D4037; -webkit-tap-highlight-color: transparent; }
         .splash-screen {
             position: fixed; inset: 0; z-index: 9999;
             background: white url('splash.jpeg') no-repeat center center;
@@ -46,16 +39,14 @@
         }
         .fade-out { opacity: 0; pointer-events: none; }
         
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* 拖拽樣式 */
+        .sortable-ghost { opacity: 0.3; background: #FFD1DC !important; }
+        .sortable-drag { transform: scale(1.02); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+
+        /* 風琴式展開動畫 */
+        .accordion-content { transition: max-height 0.3s ease-out; overflow: hidden; }
         
-        /* 動畫設定 */
-        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        
-        /* 拖曳樣式 (Part 2/3) */
-        .sortable-ghost { opacity: 0.4; background-color: #FFF0F5; border-radius: 1rem; }
-        .sortable-drag { transform: scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 1rem; }
+        .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
@@ -67,205 +58,109 @@
         
         <header class="relative h-64">
             <img src="header-bg(1).jpg" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800'">
-            <div class="absolute inset-0 bg-black/15"></div>
+            <div class="absolute inset-0 bg-black/20"></div>
             
-            <button @click="showSettings = true" class="absolute top-4 right-3 w-8 h-8 flex items-center justify-center bg-white/30 backdrop-blur-md rounded-full text-white text-sm hover:bg-white/50 transition z-50">
-                <i class="fa-solid fa-gear"></i>
+            <button @click="showSettings = true" class="absolute top-4 right-2 w-8 h-8 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white transition active:scale-90">
+                <i class="fa-solid fa-gear text-sm"></i>
             </button>
 
-            <div class="absolute bottom-12 left-6 text-white text-shadow drop-shadow-md">
-                <h1 class="text-3xl font-bold tracking-widest mb-1">{{ trip.title || '我的櫻花季' }}</h1>
-                <p class="text-xs opacity-90 font-medium" v-if="trip.start_date">{{ trip.start_date }} ➜ {{ trip.end_date }}</p>
+            <div class="absolute bottom-12 left-6 text-white text-shadow">
+                <h1 class="text-2xl font-bold tracking-widest">{{ trip.title || '我的櫻花之旅' }}</h1>
+                <p class="text-xs mt-1 opacity-90">{{ trip.start_date }} ➜ {{ trip.end_date }}</p>
             </div>
         </header>
 
-        <div class="relative -mt-8 bg-white rounded-t-[32px] px-5 pt-6 min-h-[600px] shadow-floating">
+        <div class="relative -mt-10 bg-white rounded-t-[40px] px-4 pt-8 min-h-[500px]">
             
-            <div class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm py-2 mb-6 border-b border-sakura-light flex justify-between px-1">
-                <button v-for="t in tabs" :key="t.id" @click="currentTab = t.id" :class="['flex flex-col items-center gap-1 transition-all duration-300', currentTab === t.id ? 'text-sakura-dark scale-110' : 'text-gray-300']">
-                    <div :class="['w-10 h-10 rounded-full flex items-center justify-center', currentTab === t.id ? 'bg-sakura-light shadow-sm' : '']">
+            <div class="flex justify-between px-2 mb-8 border-b border-gray-50 pb-4">
+                <button v-for="t in tabs" :key="t.id" @click="currentTab = t.id" 
+                        :class="['flex flex-col items-center gap-1', currentTab === t.id ? 'text-sakura-dark scale-105' : 'text-gray-300']">
+                    <div :class="['w-10 h-10 rounded-full flex items-center justify-center transition-all', currentTab === t.id ? 'bg-sakura-light' : '']">
                         <i :class="['text-lg', t.icon]"></i>
                     </div>
                     <span class="text-[10px] font-bold">{{ t.name }}</span>
                 </button>
             </div>
 
-            <div v-if="!isConnected" class="py-20 text-center">
-                <i class="fa-solid fa-link-slash text-5xl text-gray-200 mb-4"></i>
-                <h3 class="text-lg font-bold text-gray-400 mb-2">等待連線中...</h3>
-                <p class="text-xs text-gray-400 mb-6">請點擊右上角小齒輪，連接資料庫 🌸</p>
-            </div>
-
-            <div v-else-if="currentTab === 'schedule'" class="space-y-4 pb-10" ref="sortableList">
-                <div v-if="schedules.length === 0" class="text-center py-16 text-gray-300">
-                    <div class="bg-sakura-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-map-location-dot text-2xl text-sakura-dark"></i>
-                    </div>
-                    <p class="font-medium">這天還沒有行程喔</p>
-                    <p class="text-xs mt-1">點擊右下角新增第一站吧！</p>
+            <div v-if="currentTab === 'schedule'" ref="sortableContainer" class="space-y-4">
+                <div v-if="!isConnected" class="text-center py-10 text-gray-300">
+                    <p class="text-sm">請先點擊右上角 ⚙️ 連接資料庫</p>
                 </div>
                 
-                <div v-for="item in schedules" :key="item.id" :data-id="item.id" class="group bg-white border border-gray-100 p-4 rounded-3xl shadow-sm flex gap-4 items-stretch relative overflow-hidden">
+                <div v-for="(item, index) in schedules" :key="item.id" :data-id="item.id"
+                     class="group bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex gap-4 items-start active:cursor-grabbing">
+                    <div class="text-center min-w-[55px] pt-1">
+                        <div class="font-bold text-gray-600 text-sm">{{ item.start_time }}</div>
+                        <div class="text-[10px] text-gray-300 mt-1">{{ item.end_time }}</div>
+                    </div>
                     
-                    <div class="flex flex-col items-center justify-center min-w-[50px] z-10">
-                        <div class="font-bold text-cocoa text-sm">{{ item.start_time?.slice(0,5) }}</div>
-                        <div class="h-6 w-0.5 bg-sakura-main/30 my-1 rounded-full"></div>
-                        <div class="text-[10px] text-gray-400 font-medium">{{ item.end_time?.slice(0,5) }}</div>
-                    </div>
-
-                    <div class="flex-1 py-1 z-10">
-                        <div v-if="item.type === 'transport'" class="bg-sky-50/50 p-3 rounded-2xl border border-sky-100 h-full flex flex-col justify-center">
-                            <div class="text-sky-700 font-bold text-sm mb-1 flex items-center">
-                                <i class="fa-solid fa-train-subway mr-2 text-sky-500"></i>{{ item.title }}
+                    <div class="flex-1">
+                        <div v-if="item.type === 'transport'" class="bg-sky/40 p-3 rounded-xl border border-sky-200">
+                            <div class="text-blue-700 font-bold text-sm flex items-center">
+                                <i class="fa-solid fa-train-subway mr-2"></i> {{ item.title }}
                             </div>
-                            <p class="text-[11px] text-sky-600/70" v-if="item.notes">{{ item.notes }}</p>
                         </div>
-                        
-                        <div v-else class="h-full flex flex-col justify-center">
-                            <h4 class="font-bold text-gray-700 text-base leading-tight mb-1.5">{{ item.title }}</h4>
-                            <div class="flex items-center gap-3 text-[11px] text-gray-400">
-                                <span class="bg-cream px-2 py-0.5 rounded-md text-cocoa"><i class="fa-regular fa-clock mr-1"></i>{{ item.duration }} 分鐘</span>
-                                <span class="truncate" v-if="item.location"><i class="fa-solid fa-location-dot text-sakura-main mr-1"></i>{{ item.location }}</span>
+                        <div v-else>
+                            <h4 class="font-bold text-gray-700 text-base mb-1">{{ item.title }}</h4>
+                            <div class="flex items-center text-[11px] text-gray-400">
+                                <i class="fa-solid fa-location-dot mr-1"></i> {{ item.location }}
                             </div>
                         </div>
                     </div>
-
-                    <div class="handle absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center text-gray-200 cursor-grab touch-none active:bg-gray-50 transition-colors">
-                        <i class="fa-solid fa-grip-vertical"></i>
+                    <div class="pt-2 text-gray-200 handle cursor-grab">
+                        <i class="fa-solid fa-grip-lines"></i>
                     </div>
                 </div>
             </div>
-            
-            <div v-else-if="currentTab === 'list'" class="text-center py-10">
-                <div class="bg-white p-6 border border-sakura-light rounded-3xl shadow-sm">
-                    <i class="fa-solid fa-file-excel text-5xl text-green-500 mb-4 drop-shadow-sm"></i>
-                    <h3 class="font-bold text-gray-700 mb-2">匯出專屬行程表</h3>
-                    <p class="text-xs text-gray-400 mb-6">將目前安排轉為 15 分鐘刻度的 Excel 檔案，方便與旅伴分享！</p>
-                    <button @click="exportExcel" class="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-md active:scale-95 text-sm w-full transition-transform">
-                        一鍵下載 .xlsx
+        </div>
+
+        <div class="fixed bottom-6 right-6 flex flex-col items-end gap-3 z-50">
+            <transition name="fade">
+                <div v-if="showAddMenu" class="flex flex-col gap-2 mb-2 animate-slide-up">
+                    <button @click="openAddModal('activity')" class="bg-white text-sakura-dark px-4 py-2 rounded-full shadow-lg border border-sakura-light flex items-center gap-2 text-sm font-bold">
+                        <i class="fa-solid fa-camera-retro"></i> 新增景點
+                    </button>
+                    <button @click="openAddModal('transport')" class="bg-white text-blue-400 px-4 py-2 rounded-full shadow-lg border border-blue-50 flex items-center gap-2 text-sm font-bold">
+                        <i class="fa-solid fa-bus-simple"></i> 新增交通
                     </button>
                 </div>
-            </div>
+            </transition>
+            <button @click="showAddMenu = !showAddMenu" 
+                    :class="['w-14 h-14 rounded-full shadow-floating flex items-center justify-center text-2xl text-white transition-transform shadow-lg', showAddMenu ? 'bg-gray-400 rotate-45' : 'bg-sakura-main']">
+                <i class="fa-solid fa-plus"></i>
+            </button>
         </div>
 
-        <button v-if="isConnected" @click="openAddModal" class="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-sakura-main to-sakura-dark text-white rounded-full shadow-lg shadow-sakura-main/40 flex items-center justify-center text-2xl active:scale-90 transition-transform z-40">
-            <i class="fa-solid fa-plus"></i>
-        </button>
-
-        <div class="text-center text-[10px] text-gray-300 mt-4 pb-8 font-medium tracking-wide">🌸 Tiffany & Benjamin 🌸</div>
-    </div>
-
-    <div v-if="showAddModal" class="fixed inset-0 z-[100] bg-cocoa/20 backdrop-blur-sm flex items-end justify-center">
-        <div class="absolute inset-0" @click="showAddModal = false"></div>
-        
-        <div class="bg-white w-full max-w-md rounded-t-[32px] p-6 shadow-floating animate-slide-up relative z-10 max-h-[85vh] overflow-y-auto no-scrollbar">
-            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-5"></div>
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-cocoa">新增行程 ✏️</h2>
-                <button @click="showAddModal = false" class="w-8 h-8 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <div class="space-y-4 pb-6">
-                <div class="flex bg-gray-50 p-1 rounded-2xl mb-2">
-                    <button @click="newItem.type = 'activity'" :class="['flex-1 py-2 text-sm font-bold rounded-xl transition-all', newItem.type === 'activity' ? 'bg-white shadow-sm text-sakura-dark' : 'text-gray-400']">🏞️ 景點活動</button>
-                    <button @click="newItem.type = 'transport'" :class="['flex-1 py-2 text-sm font-bold rounded-xl transition-all', newItem.type === 'transport' ? 'bg-white shadow-sm text-sky-500' : 'text-gray-400']">🚆 交通移動</button>
+        <div v-if="showSettings" class="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+            <div class="bg-white w-full max-w-sm rounded-[30px] p-8 shadow-2xl relative">
+                <button @click="showSettings = false" class="absolute top-6 right-6 text-gray-300"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h2 class="text-xl font-bold text-sakura-dark mb-6">連線設定</h2>
+                <div class="space-y-4">
+                    <input v-model="config.url" placeholder="Supabase URL" class="w-full p-3 rounded-xl bg-gray-50 border-none outline-none text-sm">
+                    <input v-model="config.key" type="password" placeholder="Anon Key" class="w-full p-3 rounded-xl bg-gray-50 border-none outline-none text-sm">
+                    <button @click="connectSupabase" class="w-full bg-sakura-main text-white py-3 rounded-full font-bold shadow-md active:scale-95 transition">儲存連線</button>
+                    <p v-if="errorMsg" class="text-red-400 text-[10px] text-center">{{ errorMsg }}</p>
                 </div>
-
-                <div>
-                    <label class="text-[10px] text-gray-400 ml-2 font-bold">{{ newItem.type === 'activity' ? '景點名稱' : '交通方式 (例：地鐵銀座線)' }}</label>
-                    <input v-model="newItem.title" placeholder="請輸入標題..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white transition-colors font-bold text-gray-700">
-                </div>
-
-                <div class="flex gap-3">
-                    <div class="flex-1">
-                        <label class="text-[10px] text-gray-400 ml-2 font-bold">開始時間</label>
-                        <input v-model="newItem.start_time" type="time" class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white font-bold text-cocoa">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[10px] text-gray-400 ml-2 font-bold">預計停留 (分鐘)</label>
-                        <input v-model="newItem.duration" type="number" placeholder="60" class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white font-bold text-cocoa text-center">
-                    </div>
-                </div>
-
-                <button @click="isAccordionOpen = !isAccordionOpen" class="w-full py-3 flex items-center justify-center gap-2 text-xs font-bold text-sakura-dark bg-sakura-light/50 rounded-2xl mt-2 transition-colors">
-                    {{ isAccordionOpen ? '收起詳細設定' : '🔽 展開詳細設定 (地點、備註)' }}
-                </button>
-
-                <div v-show="isAccordionOpen" class="space-y-4 pt-2 border-t border-gray-50 transition-all duration-300">
-                    <div>
-                        <label class="text-[10px] text-gray-400 ml-2 font-bold">地點 / 地址</label>
-                        <div class="relative">
-                            <i class="fa-solid fa-location-dot absolute left-4 top-4 text-gray-300"></i>
-                            <input v-model="newItem.location" placeholder="搜尋或輸入地址..." class="w-full pl-10 p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-gray-400 ml-2 font-bold">備註說明</label>
-                        <textarea v-model="newItem.notes" rows="2" placeholder="門票資訊、月台號碼..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none focus:bg-white resize-none"></textarea>
-                    </div>
-                </div>
-
-                <button @click="saveSchedule" :disabled="isSaving" class="w-full bg-sakura-main text-white py-4 mt-4 rounded-2xl font-bold shadow-soft active:scale-95 transition-transform flex justify-center items-center">
-                    <span v-if="!isSaving">儲存行程 🌸</span>
-                    <span v-else><i class="fa-solid fa-circle-notch animate-spin mr-2"></i>儲存中...</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div v-if="showSettings" class="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm flex items-end justify-center">
-        <div class="bg-white w-full max-w-sm rounded-t-[32px] p-8 shadow-2xl animate-slide-up pb-12 relative">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-cocoa">資料庫設定 ⚙️</h2>
-                <button @click="showSettings = false" class="w-8 h-8 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] text-gray-400 ml-2 font-bold">SUPABASE URL</label>
-                    <input v-model="config.url" placeholder="https://..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none text-gray-600">
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-400 ml-2 font-bold">ANON KEY</label>
-                    <input v-model="config.key" type="password" placeholder="ey..." class="w-full p-3.5 mt-1 text-sm rounded-2xl bg-gray-50 border border-gray-100 focus:border-sakura-main outline-none text-gray-600">
-                </div>
-                
-                <button @click="connectSupabase" :disabled="loading" class="w-full bg-sakura-dark text-white py-3.5 mt-2 rounded-2xl font-bold shadow-soft active:scale-95 transition">
-                    <span v-if="!loading">確認連線</span>
-                    <span v-else><i class="fa-solid fa-circle-notch animate-spin mr-2"></i>連線中...</span>
-                </button>
-                
-                <p v-if="errorMsg" class="text-red-400 text-xs text-center font-medium mt-2 bg-red-50 p-2 rounded-lg">{{ errorMsg }}</p>
-                <p v-if="isConnected" class="text-green-500 text-xs text-center mt-2 font-bold">✅ 已成功連接</p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const { createApp, ref, onMounted, nextTick, watch } = Vue;
+const { createApp, ref, onMounted, nextTick } = Vue;
 
 createApp({
     setup() {
         const showSplash = ref(true);
         const showSettings = ref(false);
+        const showAddMenu = ref(false);
         const isConnected = ref(false);
-        const loading = ref(false);
         const errorMsg = ref('');
-        
-        // ➕ 新增行程的狀態
-        const showAddModal = ref(false);
-        const isAccordionOpen = ref(false);
-        const isSaving = ref(false);
-        const newItem = ref({ type: 'activity', title: '', start_time: '10:00', duration: '60', location: '', notes: '' });
-        
         const config = ref({ url: localStorage.getItem('sb_url') || '', key: localStorage.getItem('sb_key') || '' });
-        const trip = ref({});
+        
+        const trip = ref({ title: '櫻花季手帳', start_date: '2025-04-01', end_date: '2025-04-05' });
         const schedules = ref([]);
         const currentTab = ref('schedule');
-        const sortableList = ref(null);
-        let sortableInstance = null;
-
         const tabs = [
             { id: 'schedule', name: '行程', icon: 'fa-solid fa-calendar-day' },
             { id: 'nav', name: '導航', icon: 'fa-solid fa-map-location-dot' },
@@ -276,147 +171,58 @@ createApp({
 
         let supabase = null;
 
-        // --- 核心時間推算引擎 (Part 3) ---
-        const timeToMinutes = (t) => {
-            if (!t) return 0;
-            const [h, m] = t.split(':').map(Number);
-            return h * 60 + m;
-        };
-        const minutesToTime = (m) => {
-            let h = Math.floor(m / 60) % 24;
-            let min = m % 60;
-            return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`;
-        };
-        const updateTimeChain = () => {
-            // 根據順序與 duration 自動推算 end_time 與下一個的 start_time
-            let currentMins = 0;
-            schedules.value.forEach((item, index) => {
-                if (index === 0 || item.is_fixed_time) {
-                    currentMins = timeToMinutes(item.start_time);
-                } else {
-                    item.start_time = minutesToTime(currentMins).slice(0,5); // 前端顯示用
-                }
-                const dur = parseInt(item.duration) || 60;
-                currentMins += dur;
-                item.end_time = minutesToTime(currentMins).slice(0,5);
-            });
-        };
-
-        // --- 初始化拖曳 (Part 2) ---
-        const initSortable = () => {
-            if (sortableList.value && !sortableInstance) {
-                sortableInstance = new Sortable(sortableList.value, {
-                    handle: '.handle', animation: 200, delay: 200, delayOnTouchOnly: true,
-                    ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-                    onEnd: async (evt) => {
-                        // 更新陣列順序
-                        const item = schedules.value.splice(evt.oldIndex, 1)[0];
-                        schedules.value.splice(evt.newIndex, 0, item);
-                        updateTimeChain(); // 觸發時間聯動
-                        
-                        // 準備回寫 DB (更新 sort_order)
-                        const updates = schedules.value.map((s, idx) => ({
-                            id: s.id, sort_order: idx, start_time: s.start_time + ':00', end_time: s.end_time + ':00'
-                        }));
-                        await supabase.from('schedules').upsert(updates);
-                    }
-                });
-            }
-        };
-
-        // --- 連線邏輯 ---
         const connectSupabase = async () => {
-            errorMsg.value = '';
-            let rawUrl = config.value.url.trim().replace(/\.+$/, '').replace(/\/+$/, '');
-            let rawKey = config.value.key.trim();
-            if (!rawUrl || !rawKey) { errorMsg.value = '請填寫完整資訊'; return; }
-            loading.value = true;
+            const url = config.value.url.trim().replace(/\.+$/, '');
+            const key = config.value.key.trim();
+            if (!url || !key) return;
 
             try {
-                supabase = window.supabase.createClient(rawUrl, rawKey);
-                const { data: tripData, error: tripError } = await supabase.from('trips').select('*').limit(1);
-                if (tripError) throw tripError;
-
-                if (!tripData || tripData.length === 0) {
-                    const { data: newTrip } = await supabase.from('trips').insert([{ title: '我的櫻花季', start_date: '2025-04-01', end_date: '2025-04-05' }]).select();
-                    trip.value = newTrip[0];
-                } else { trip.value = tripData[0]; }
-
-                const { data: schData } = await supabase.from('schedules').select('*').order('sort_order');
-                schedules.value = schData || [];
-                updateTimeChain();
-                
-                localStorage.setItem('sb_url', rawUrl);
-                localStorage.setItem('sb_key', rawKey);
-                isConnected.value = true;
-                setTimeout(() => { showSettings.value = false; nextTick(() => initSortable()); }, 500);
-            } catch (err) {
-                errorMsg.value = '連線失敗，請檢查資料或 RLS 權限設定';
-            } finally { loading.value = false; }
-        };
-
-        // --- 新增行程 ---
-        const openAddModal = () => {
-            // 自動帶入上一個行程的結束時間
-            if (schedules.value.length > 0) {
-                newItem.value.start_time = schedules.value[schedules.value.length - 1].end_time;
-            } else {
-                newItem.value.start_time = '09:00';
-            }
-            newItem.value.title = ''; newItem.value.location = ''; newItem.value.notes = '';
-            isAccordionOpen.value = false;
-            showAddModal.value = true;
-        };
-
-        const saveSchedule = async () => {
-            if (!newItem.value.title) return alert("請輸入標題");
-            isSaving.value = true;
-            try {
-                const insertData = {
-                    trip_id: trip.value.id,
-                    title: newItem.value.title,
-                    type: newItem.value.type,
-                    start_time: newItem.value.start_time + ':00',
-                    duration: newItem.value.duration,
-                    location: newItem.value.location,
-                    notes: newItem.value.notes,
-                    sort_order: schedules.value.length
-                };
-                const { data, error } = await supabase.from('schedules').insert([insertData]).select();
+                supabase = window.supabase.createClient(url, key);
+                const { data, error } = await supabase.from('trips').select('*').limit(1).single();
                 if (error) throw error;
                 
-                schedules.value.push(data[0]);
-                updateTimeChain();
-                showAddModal.value = false;
-            } catch(e) { alert("儲存失敗：" + e.message); } 
-            finally { isSaving.value = false; }
+                trip.value = data;
+                const { data: schData } = await supabase.from('schedules').select('*').order('sort_order');
+                schedules.value = schData || [];
+                
+                localStorage.setItem('sb_url', url);
+                localStorage.setItem('sb_key', key);
+                isConnected.value = true;
+                showSettings.value = false;
+                initSortable();
+            } catch (err) {
+                errorMsg.value = '連線失敗，請檢查金鑰或 RLS 權限';
+            }
         };
 
-        // --- 匯出 Excel (Part 4) ---
-        const exportExcel = () => {
-            const wb = XLSX.utils.book_new();
-            const wsData = [["時間", "行程內容", "地點", "備註"]];
-            schedules.value.forEach(s => {
-                wsData.push([s.start_time?.slice(0,5) || '', s.title || '', s.location || '', s.notes || '']);
+        const initSortable = () => {
+            nextTick(() => {
+                const el = document.querySelector('.space-y-4');
+                if (!el) return;
+                Sortable.create(el, {
+                    animation: 150,
+                    handle: '.handle',
+                    ghostClass: 'sortable-ghost',
+                    onEnd: async (evt) => {
+                        const movedItem = schedules.value.splice(evt.oldIndex, 1)[0];
+                        schedules.value.splice(evt.newIndex, 0, movedItem);
+                        // 更新資料庫中的順序 (這裡僅更新 UI，實際需執行 update schedules set sort_order)
+                    }
+                });
             });
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            ws['!cols'] = [{wch: 8}, {wch: 20}, {wch: 15}, {wch: 25}];
-            XLSX.utils.book_append_sheet(wb, ws, "行程表");
-            XLSX.writeFile(wb, `Our_Travel_Diary_${trip.value.title}.xlsx`);
         };
 
-        watch(currentTab, (newVal) => { if(newVal === 'schedule' && isConnected.value) nextTick(() => initSortable()); });
+        const openAddModal = (type) => {
+            alert('進入新增 ' + (type === 'activity' ? '景點' : '交通') + ' 頁面 (開發中)');
+            showAddMenu.value = false;
+        };
 
         onMounted(() => {
             if (config.value.url && config.value.key) connectSupabase();
-            setTimeout(() => { showSplash.value = false; }, 2000);
+            setTimeout(() => { showSplash.value = false; }, 2500);
         });
 
-        return { 
-            showSplash, showSettings, showAddModal, isAccordionOpen, isConnected, loading, isSaving, 
-            config, errorMsg, newItem, trip, schedules, currentTab, tabs, sortableList, 
-            connectSupabase, openAddModal, saveSchedule, exportExcel 
-        };
+        return { showSplash, showSettings, showAddMenu, isConnected, config, errorMsg, connectSupabase, trip, schedules, currentTab, tabs, openAddModal };
     }
 }).mount('#app');
 </script>

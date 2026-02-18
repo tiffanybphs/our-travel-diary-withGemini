@@ -31,72 +31,76 @@
                         cocoa: '#8B5A2B',
                         sakuraDark: '#FFB6C1'
                     },
-                    fontFamily: {
-                        zen: ['"Zen Maru Gothic"', 'sans-serif']
-                    }
+                    fontFamily: { zen: ['"Zen Maru Gothic"', 'sans-serif'] }
                 }
             }
         }
     </script>
     <style>
-        body { font-family: 'Zen Maru Gothic', sans-serif; background-color: #FFF9E3; overflow-x: hidden; color: #5C4033; }
+        body { font-family: 'Zen Maru Gothic', sans-serif; background-color: #FFF9E3; color: #5C4033; overflow-x: hidden; }
         .sakura-shadow { box-shadow: 0 4px 15px rgba(255, 209, 220, 0.6); }
-        .card-border { border: 2px solid #FFD1DC; border-radius: 16px; background: white; }
-        .negative-margin-content { margin-top: -40px; border-top-left-radius: 40px; border-top-right-radius: 40px; background-color: #FFF9E3; position: relative; z-index: 10; min-height: 80vh; padding: 20px;}
-        .bg-header { background-image: url('header-bg(1).jpg'); background-size: cover; background-position: center; height: 250px; position: relative; }
+        .card-border { border: 2px solid #FFD1DC; border-radius: 20px; background: white; transition: all 0.3s ease; }
+        .negative-margin-content { margin-top: -40px; border-top-left-radius: 40px; border-top-right-radius: 40px; background-color: #FFF9E3; position: relative; z-index: 10; min-height: 80vh; padding: 25px 20px;}
+        .bg-header { background-image: url('header-bg(1).jpg'); background-size: cover; background-position: center; height: 260px; position: relative; }
         .splash-screen { background-image: url('splash.jpeg'); background-size: cover; background-position: center; z-index: 9999; }
         
-        /* Drag UI Feedback */
-        .ghost-card { opacity: 0.4; }
-        .drag-card { transform: scale(1.05); box-shadow: 0 8px 25px rgba(255, 209, 220, 0.8); z-index: 50; }
+        /* Accordion Animation */
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; opacity: 0; }
+        .accordion-open { max-height: 1200px; opacity: 1; padding-top: 15px; border-top: 1px dashed #FFD1DC; margin-top: 15px; }
         
-        /* Smooth Accordion */
-        .accordion-enter-active, .accordion-leave-active { transition: max-height 0.4s ease, opacity 0.4s ease; max-height: 1000px; overflow: hidden; }
-        .accordion-enter-from, .accordion-leave-to { max-height: 0; opacity: 0; }
+        /* Drag UI */
+        .ghost-card { opacity: 0.2; transform: scale(0.95); }
+        .drag-card { transform: scale(1.05); box-shadow: 0 15px 30px rgba(255, 209, 220, 0.8); z-index: 50; }
         
-        /* Hiding scrollbar for tabs */
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Input tweaks */
-        input:focus, textarea:focus, select:focus { outline: none; border-color: #FFB6C1; box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.3); }
+        input::placeholder { color: #D1D5DB; font-weight: 400; }
+        .toast-enter-active, .toast-leave-active { transition: opacity 0.5s; }
+        .toast-enter-from, .toast-leave-to { opacity: 0; }
     </style>
 </head>
 <body>
 
 <div id="app" class="relative">
-    <div v-if="!isConfigured" class="fixed inset-0 splash-screen flex flex-col items-center justify-center text-white bg-sakura bg-opacity-90">
-        <div class="bg-white/80 p-6 rounded-3xl shadow-xl text-center text-cocoa max-w-sm mx-4">
-            <h1 class="text-2xl font-bold mb-4">🌸 歡迎來到旅遊手帳 🌸</h1>
-            <p class="mb-4 text-sm">請輸入數據庫連線資訊以開始</p>
-            <input v-model="dbUrl" placeholder="Supabase URL" class="w-full mb-3 p-3 rounded-xl border-2 border-sakura text-sm">
-            <input v-model="dbKey" placeholder="Supabase Anon Key" class="w-full mb-4 p-3 rounded-xl border-2 border-sakura text-sm">
-            <button @click="saveDbConfig" class="w-full bg-sakuraDark text-white font-bold py-3 rounded-xl sakura-shadow">
-                開始旅程
+    <transition name="toast">
+        <div v-if="toastShow" class="fixed top-10 left-1/2 -translate-x-1/2 z-[100] bg-black/70 text-white px-6 py-3 rounded-full font-bold">
+            {{ toastMsg }}
+        </div>
+    </transition>
+
+    <div v-if="!isConfigured" class="fixed inset-0 splash-screen flex flex-col items-center justify-center">
+        <div class="bg-white/90 p-8 rounded-[32px] shadow-2xl text-center text-cocoa max-w-sm mx-4 backdrop-blur-sm border-2 border-sakura">
+            <h1 class="text-2xl font-bold mb-2">🌸 旅遊手帳 🌸</h1>
+            <p class="mb-6 text-sm opacity-70 font-medium">請輸入 Supabase 資訊開啟旅程</p>
+            <input v-model="dbUrl" placeholder="Supabase URL" class="w-full mb-3 p-3 rounded-xl border-2 border-sakura/30 text-sm">
+            <input v-model="dbKey" placeholder="Supabase Anon Key" class="w-full mb-6 p-3 rounded-xl border-2 border-sakura/30 text-sm">
+            <button @click="saveDbConfig" class="w-full bg-sakuraDark text-white font-bold py-4 rounded-2xl sakura-shadow active:scale-95 transition">
+                開始同步
             </button>
         </div>
     </div>
 
     <div v-else>
-        <div class="fixed top-4 right-4 z-50">
-            <button @click="showSettings = true" class="w-8 h-8 bg-white/50 backdrop-blur rounded-full text-cocoa shadow-sm flex items-center justify-center">
-                <i class="fa-solid fa-gear text-sm"></i>
+        <div class="fixed top-6 right-6 z-[60]">
+            <button @click="showSettings = true" class="w-10 h-10 bg-white/70 backdrop-blur rounded-full text-cocoa shadow-md flex items-center justify-center border border-sakura">
+                <i class="fa-solid fa-gear"></i>
             </button>
         </div>
 
         <header class="bg-header">
-            <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-            <div class="absolute bottom-12 left-6 text-white">
-                <h1 class="text-3xl font-bold tracking-wider drop-shadow-md">{{ tripInfo.title || '我的日本之旅' }}</h1>
-                <p class="text-sm mt-1 drop-shadow">{{ tripInfo.start_date }} ~ {{ tripInfo.end_date }}</p>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+            <div class="absolute bottom-16 left-8 text-white">
+                <h1 class="text-3xl font-bold tracking-widest drop-shadow-lg">{{ tripInfo.title || '我的日本之旅' }}</h1>
+                <p class="text-sm mt-1 opacity-90 font-medium tracking-tight">
+                    <i class="fa-regular fa-calendar-check mr-1"></i> {{ tripInfo.start_date }} ~ {{ tripInfo.end_date }}
+                </p>
             </div>
         </header>
 
-        <div class="sticky top-0 z-40 bg-white shadow-sm flex justify-around p-3 text-sm font-bold text-cocoa overflow-x-auto no-scrollbar">
+        <div class="sticky top-0 z-40 bg-white/90 backdrop-blur-md shadow-sm flex space-x-2 p-3 overflow-x-auto no-scrollbar border-b border-sakura/20">
             <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id" 
-                    class="px-4 py-2 rounded-full whitespace-nowrap transition"
-                    :class="activeTab === tab.id ? 'bg-sakura text-white sakura-shadow' : 'text-cocoa/60'">
-                <i :class="tab.icon" class="mr-1"></i> {{ tab.label }}
+                    class="px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm flex items-center"
+                    :class="activeTab === tab.id ? 'bg-sakura text-white sakura-shadow scale-105' : 'text-cocoa/50 hover:text-sakuraDark'">
+                <i :class="tab.icon" class="mr-2"></i> {{ tab.label }}
             </button>
         </div>
 
@@ -104,23 +108,35 @@
             
             <div v-show="activeTab === 'schedule'">
                 
-                <div v-if="!tripDays.length" class="text-center py-10">
-                    <h2 class="text-lg font-bold mb-4 text-cocoa">建立新旅程</h2>
-                    <input v-model="newTrip.title" placeholder="旅程名稱" class="border p-2 rounded-lg w-3/4 mb-3">
-                    <input v-model="newTrip.start" type="date" class="border p-2 rounded-lg w-3/4 mb-3">
-                    <input v-model="newTrip.end" type="date" class="border p-2 rounded-lg w-3/4 mb-4">
-                    <button @click="createTrip" class="bg-sakura text-white px-6 py-2 rounded-full font-bold">開始規劃</button>
+                <div v-if="!tripDays.length" class="text-center py-12 bg-white rounded-[32px] border-2 border-dashed border-sakura shadow-inner">
+                    <img src="home.png" class="w-20 mx-auto mb-4 opacity-50">
+                    <h2 class="text-lg font-bold text-cocoa mb-6">尚未設定旅程日期</h2>
+                    <div class="px-6 space-y-4">
+                        <input v-model="newTrip.title" placeholder="旅程名稱" class="w-full border-2 border-sakura/20 p-3 rounded-xl bg-cream/30">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input v-model="newTrip.start" type="date" class="border-2 border-sakura/20 p-3 rounded-xl text-sm bg-cream/30">
+                            <input v-model="newTrip.end" type="date" class="border-2 border-sakura/20 p-3 rounded-xl text-sm bg-cream/30">
+                        </div>
+                        <button @click="createTrip" class="w-full bg-sakuraDark text-white py-4 rounded-2xl font-bold sakura-shadow">建立新手帳</button>
+                    </div>
                 </div>
 
                 <div v-else>
-                    <div class="flex space-x-3 mb-4 overflow-x-auto no-scrollbar pb-2">
-                        <button v-for="(day, idx) in tripDays" :key="day.date" @click="activeDate = day.date"
-                                class="px-5 py-2 rounded-xl text-sm border-2 transition"
-                                :class="activeDate === day.date ? 'border-sakura bg-white text-sakuraDark font-bold' : 'border-transparent bg-sakura/20 text-cocoa'">
-                            {{ day.label }}
+                    <div class="flex space-x-3 mb-6 overflow-x-auto no-scrollbar pb-2">
+                        <button v-for="day in tripDays" :key="day.date" @click="activeDate = day.date"
+                                class="px-6 py-3 rounded-2xl text-xs flex flex-col items-center min-w-[85px] transition-all border-2"
+                                :class="activeDate === day.date ? 'border-sakura bg-white text-sakuraDark font-bold sakura-shadow' : 'border-transparent bg-sakura/10 text-cocoa/60'">
+                            <span>{{ day.label.split('(')[0] }}</span>
+                            <span class="text-[10px] opacity-70">{{ day.label.split('(')[1].replace(')','') }}</span>
                         </button>
-                        <button @click="exportToTravelExcel" class="px-4 py-2 rounded-xl text-sm bg-powder/50 text-blue-800">
-                            <i class="fa-solid fa-file-excel mr-1"></i> 匯出
+                    </div>
+
+                    <div class="flex justify-between items-center mb-6 px-1">
+                        <h2 class="font-bold text-cocoa flex items-center">
+                            <i class="fa-solid fa-clock-rotate-left mr-2 text-sakuraDark"></i> 今日行程佈局
+                        </h2>
+                        <button @click="exportToTravelExcel" class="text-xs bg-powder text-blue-700 px-4 py-2 rounded-full font-bold flex items-center shadow-sm">
+                            <i class="fa-solid fa-file-excel mr-1.5"></i> 匯出 Excel
                         </button>
                     </div>
 
@@ -128,176 +144,218 @@
                         v-model="activeDaySchedules" 
                         item-key="id" 
                         group="schedules"
+                        handle=".drag-handle"
                         :delay="1000" 
                         :delayOnTouchOnly="true"
-                        animation="200"
+                        animation="300"
                         ghost-class="ghost-card" 
                         drag-class="drag-card"
                         @end="onDragEnd"
-                        class="space-y-4 min-h-[50px]">
+                        class="space-y-5 min-h-[100px]">
                         
                         <template #item="{ element, index }">
-                            <div>
-                                <div v-if="index > 0 && getGapMinutes(activeDaySchedules[index-1].end_time, element.start_time) > 0" class="flex justify-center -my-2 relative z-0">
-                                    <span class="bg-sakura/30 text-xs px-3 py-1 rounded-full text-cocoa border border-sakura/50">
-                                        空檔/交通：{{ getGapMinutes(activeDaySchedules[index-1].end_time, element.start_time) }} 分鐘
-                                    </span>
+                            <div class="relative">
+                                <div v-if="index > 0 && getGapMinutes(activeDaySchedules[index-1].end_time, element.start_time) > 0" 
+                                     class="flex justify-center -my-3 mb-2 relative z-0">
+                                    <div class="bg-sakura/20 backdrop-blur-sm text-[10px] px-4 py-1.5 rounded-full text-sakuraDark border border-sakura/30 font-bold">
+                                        <i class="fa-solid fa-person-walking mr-1"></i> 空檔/交通：{{ getGapMinutes(activeDaySchedules[index-1].end_time, element.start_time) }} 分鐘
+                                    </div>
                                 </div>
 
-                                <div class="card-border p-4 relative select-text" :class="element.type === 'activity' ? 'bg-white' : 'bg-powder/10'">
-                                    <div v-if="!element.isEditing" @click="element.isEditing = true" class="cursor-pointer">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div class="flex items-center space-x-2">
-                                                <span class="text-sm font-bold bg-cream px-2 py-1 rounded-md">{{ element.start_time }} ~ {{ element.end_time }}</span>
-                                                <span v-if="element.category === '必吃'" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">必吃</span>
-                                                <span v-if="element.category === '必買'" class="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded">必買</span>
-                                                <span v-if="element.category === '必拍'" class="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">必拍</span>
+                                <div class="card-border p-5 relative select-none drag-handle" 
+                                     :class="element.type === 'activity' ? 'bg-white' : 'bg-[#EBF8FF]/60'">
+                                    
+                                    <div v-if="!element.isEditing" class="cursor-pointer">
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="text-xs font-bold bg-cream px-3 py-1.5 rounded-full text-cocoa border border-sakura/20">{{ element.start_time }} - {{ element.end_time }}</span>
+                                                <span v-if="element.category === '必吃'" class="text-[10px] bg-red-100 text-red-500 px-2 py-1 rounded-md font-bold">#必吃</span>
+                                                <span v-if="element.category === '必買'" class="text-[10px] bg-yellow-100 text-yellow-600 px-2 py-1 rounded-md font-bold">#必買</span>
+                                                <span v-if="element.category === '必拍'" class="text-[10px] bg-purple-100 text-purple-600 px-2 py-1 rounded-md font-bold">#必拍</span>
                                             </div>
-                                            <i :class="element.type === 'activity' ? 'fa-solid fa-location-dot text-sakuraDark' : 'fa-solid fa-train text-blue-400'"></i>
+                                            <button @click.stop="element.isEditing = true" class="text-sakuraDark p-1"><i class="fa-solid fa-ellipsis"></i></button>
                                         </div>
                                         
-                                        <h3 class="text-lg font-bold mb-1">{{ element.title }}</h3>
-                                        <p v-if="element.location" class="text-sm text-gray-500 mb-2" @click.stop="openMap(element.location)">
-                                            <i class="fa-solid fa-map-pin mr-1"></i> {{ element.location }}
+                                        <h3 class="text-lg font-bold text-cocoa mb-1 flex items-center">
+                                            <i v-if="element.type === 'transport'" class="fa-solid fa-route mr-2 text-powder"></i>
+                                            {{ element.type === 'transport' ? (element.from_station + ' ➜ ' + element.to_station) : element.title }}
+                                        </h3>
+                                        
+                                        <p v-if="element.location" class="text-sm text-gray-400 font-medium flex items-center" @click.stop="openMap(element.location)">
+                                            <i class="fa-solid fa-location-dot mr-1.5 text-sakuraDark opacity-60"></i> 
+                                            <span class="underline decoration-dotted underline-offset-4">{{ element.location }}</span>
+                                            <i class="fa-solid fa-arrow-up-right-from-square ml-2 text-[10px]"></i>
                                         </p>
 
-                                        <div v-if="element.type === 'transport' && element.segments" class="mt-3 space-y-2 border-t border-dashed border-gray-200 pt-2">
-                                            <div v-for="seg in element.segments" :key="seg.id" class="text-sm bg-white p-2 rounded flex items-center shadow-sm">
-                                                <i class="fa-solid fa-route mr-2 text-powder"></i>
-                                                <div>
-                                                    <span class="font-bold">{{ seg.mode }}</span> - {{ seg.route_name }} <br>
-                                                    <span class="text-xs text-gray-500">{{ seg.from_station }} ➜ {{ seg.to_station }}</span>
-                                                </div>
+                                        <div v-if="element.type === 'transport' && element.segments?.length" class="mt-4 grid grid-cols-1 gap-2">
+                                            <div v-for="seg in element.segments" :key="seg.id" class="text-[11px] bg-white/80 p-2 rounded-xl flex items-center shadow-sm border border-powder/30">
+                                                <i :class="getTransportIcon(seg.mode)" class="mr-2 text-powder text-sm w-4 text-center"></i>
+                                                <span class="font-bold opacity-80">{{ seg.mode }}</span>
+                                                <span class="mx-2 opacity-30">|</span>
+                                                <span class="truncate">{{ seg.route_name }}</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <transition name="accordion">
-                                        <div v-show="element.isEditing" class="mt-2 pt-3 border-t border-sakura">
-                                            <label class="block text-xs text-gray-400 mb-1">行程名稱</label>
-                                            <input v-model="element.title" class="w-full border-b-2 border-sakura/50 mb-3 bg-transparent p-1 focus:border-sakura font-bold text-lg">
-                                            
-                                            <div class="grid grid-cols-2 gap-3 mb-3">
-                                                <div>
-                                                    <label class="block text-xs text-gray-400 mb-1">開始時間</label>
-                                                    <input v-model="element.start_time" inputmode="numeric" @blur="handleTimeInput($event, element, 'start_time')" placeholder="0900" class="w-full bg-cream rounded p-2 text-center text-sm border border-transparent focus:border-sakura">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs text-gray-400 mb-1">時長 (HH:mm)</label>
-                                                    <input v-model="element.duration" inputmode="numeric" @blur="handleTimeInput($event, element, 'duration')" placeholder="0130" class="w-full bg-cream rounded p-2 text-center text-sm border border-transparent focus:border-sakura">
-                                                </div>
+                                    <div class="accordion-content" :class="{'accordion-open': element.isEditing}">
+                                        <div class="grid grid-cols-2 gap-4 mb-4">
+                                            <div class="col-span-2">
+                                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">行程名稱</label>
+                                                <input v-model="element.title" class="w-full border-b-2 border-sakura/30 p-2 font-bold text-lg focus:border-sakuraDark bg-transparent">
                                             </div>
-
-                                            <div v-if="element.type === 'activity'">
-                                                <input v-model="element.location" placeholder="地點名稱 (點擊地圖)" class="w-full bg-gray-50 rounded p-2 mb-2 text-sm">
-                                                <select v-model="element.category" class="w-full bg-gray-50 rounded p-2 mb-3 text-sm">
-                                                    <option>景點活動</option><option>吃喝</option><option>購物</option>
-                                                    <option>必吃</option><option>必買</option><option>必拍</option><option>其他</option>
-                                                </select>
-                                                <textarea v-model="element.notes" placeholder="備註" class="w-full bg-gray-50 rounded p-2 text-sm h-16"></textarea>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">開始時間 (如 0900)</label>
+                                                <input v-model="element.start_time" inputmode="numeric" @blur="handleTimeInput($event, element, 'start_time')" class="w-full bg-cream rounded-xl p-3 text-center font-bold text-sakuraDark border-2 border-transparent focus:border-sakura">
                                             </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">時長 (如 0130)</label>
+                                                <input v-model="element.duration" inputmode="numeric" @blur="handleTimeInput($event, element, 'duration')" class="w-full bg-cream rounded-xl p-3 text-center font-bold text-sakuraDark border-2 border-transparent focus:border-sakura">
+                                            </div>
+                                        </div>
 
-                                            <div class="flex justify-between items-center mt-4">
-                                                <button @click="deleteSchedule(element.id)" class="text-red-400 text-sm px-2"><i class="fa-solid fa-trash"></i> 刪除</button>
-                                                <button @click="saveSchedule(element)" class="bg-sakuraDark text-white px-5 py-2 rounded-full font-bold text-sm shadow">
-                                                    儲存
+                                        <div v-if="element.type === 'activity'" class="space-y-4">
+                                            <input v-model="element.location" placeholder="📍 地點名稱" class="w-full bg-gray-50 rounded-xl p-3 text-sm border border-gray-100">
+                                            <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                                                <button v-for="cat in ['景點活動','吃喝','購物','必吃','必買','必拍']" :key="cat"
+                                                        @click="element.category = cat"
+                                                        class="px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border"
+                                                        :class="element.category === cat ? 'bg-sakuraDark text-white border-sakuraDark' : 'bg-white text-gray-400 border-gray-100'">
+                                                    {{ cat }}
+                                                </button>
+                                            </div>
+                                            <textarea v-model="element.notes" placeholder="📝 備註 (營業時間、必看內容等...)" class="w-full bg-gray-50 rounded-xl p-3 text-sm h-24 border border-gray-100"></textarea>
+                                        </div>
+
+                                        <div v-if="element.type === 'transport'" class="space-y-4">
+                                            <div class="flex items-center gap-2">
+                                                <input v-model="element.from_station" placeholder="起點" class="w-full bg-gray-50 rounded-xl p-3 text-sm border">
+                                                <i class="fa-solid fa-arrow-right text-powder"></i>
+                                                <input v-model="element.to_station" placeholder="終點" class="w-full bg-gray-50 rounded-xl p-3 text-sm border">
+                                            </div>
+                                            <div class="space-y-2">
+                                                <div v-for="(seg, sIdx) in element.segments" :key="seg.id" class="p-3 bg-white rounded-xl border border-powder/30 shadow-sm relative">
+                                                    <div class="grid grid-cols-2 gap-2 mb-2">
+                                                        <select v-model="seg.mode" class="text-xs p-2 bg-cream/50 rounded-lg">
+                                                            <option v-for="m in transportModes" :key="m" :value="m">{{m}}</option>
+                                                        </select>
+                                                        <input v-model="seg.route_name" placeholder="路線(如:山手線)" class="text-xs p-2 border-b">
+                                                    </div>
+                                                    <input v-model="seg.from_station" placeholder="上車站" class="w-full text-[10px] mb-1">
+                                                    <button @click="element.segments.splice(sIdx, 1)" class="absolute -top-2 -right-2 w-5 h-5 bg-red-400 text-white rounded-full text-[10px] flex items-center justify-center shadow-md">✕</button>
+                                                </div>
+                                                <button @click="addSegment(element)" class="w-full py-2 border-2 border-dashed border-powder/50 rounded-xl text-xs text-powder font-bold hover:bg-powder/5 transition">
+                                                    <i class="fa-solid fa-plus mr-1"></i> 新增交通路段
                                                 </button>
                                             </div>
                                         </div>
-                                    </transition>
+
+                                        <div class="flex justify-between items-center mt-6 pt-4 border-t border-sakura/10">
+                                            <button @click="deleteSchedule(element.id)" class="text-red-400 text-xs font-bold px-4 py-2 hover:bg-red-50 rounded-full transition">
+                                                <i class="fa-solid fa-trash-can mr-1"></i> 刪除行程
+                                            </button>
+                                            <button @click="saveSchedule(element)" class="bg-sakuraDark text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-lg active:scale-95 transition">
+                                                完成儲存
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>
                     </draggable>
 
-                    <div class="mt-8 border-t-2 border-dashed border-sakura pt-4">
-                        <h3 class="text-cocoa font-bold mb-3"><i class="fa-solid fa-inbox"></i> 有待編入行程區</h3>
-                        <draggable v-model="pendingSchedules" item-key="id" group="schedules" :delay="1000" class="flex overflow-x-auto space-x-3 pb-4 no-scrollbar">
+                    <div class="mt-12 bg-white/50 rounded-[32px] p-6 border-2 border-dashed border-sakura/30">
+                        <h3 class="text-cocoa font-bold mb-4 flex items-center opacity-60">
+                            <i class="fa-solid fa-inbox mr-2"></i> 有待編入行程區
+                        </h3>
+                        <draggable v-model="pendingSchedules" item-key="id" group="schedules" :delay="1000" class="flex overflow-x-auto space-x-4 pb-4 no-scrollbar min-h-[80px]">
                             <template #item="{ element }">
-                                <div class="min-w-[150px] bg-white card-border p-3 text-sm opacity-80 shrink-0">
-                                    <h4 class="font-bold truncate">{{ element.title }}</h4>
-                                    <p class="text-xs text-gray-400">{{ element.duration }}</p>
+                                <div class="min-w-[160px] bg-white card-border p-4 shadow-sm opacity-80 shrink-0 border-dashed">
+                                    <h4 class="font-bold text-sm truncate text-cocoa">{{ element.title }}</h4>
+                                    <div class="flex items-center mt-1 text-[10px] text-gray-400 font-bold">
+                                        <i class="fa-solid fa-hourglass-half mr-1 text-sakura"></i> {{ element.duration }}
+                                    </div>
                                 </div>
                             </template>
                         </draggable>
+                        <p v-if="!pendingSchedules.length" class="text-center text-xs text-gray-300 py-4 font-medium">長按行程卡片 1 秒可拖到此處暫存</p>
                     </div>
 
-                    <button @click="addNewCard" class="fixed bottom-20 right-6 w-14 h-14 bg-sakuraDark text-white rounded-full text-2xl shadow-xl flex items-center justify-center z-50 transition transform active:scale-95">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
+                    <div class="fixed bottom-10 right-8 z-50 flex flex-col space-y-4">
+                        <button @click="addNewCard('transport')" class="w-14 h-14 bg-powder text-white rounded-full text-2xl shadow-2xl flex items-center justify-center transform active:scale-90 transition">
+                            <i class="fa-solid fa-train-subway"></i>
+                        </button>
+                        <button @click="addNewCard('activity')" class="w-16 h-16 bg-sakuraDark text-white rounded-full text-3xl shadow-2xl flex items-center justify-center transform active:scale-90 transition">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div v-show="activeTab === 'nav'">
-                <div class="card-border p-5 text-center">
-                    <h3 class="font-bold text-lg mb-4">預設地圖引擎</h3>
-                    <div class="flex justify-center space-x-4">
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" v-model="mapEngine" value="google" class="text-sakura"> <span>Google地圖</span>
-                        </label>
-                        <label class="flex items-center space-x-2">
-                            <input type="radio" v-model="mapEngine" value="amap" class="text-sakura"> <span>高德地圖</span>
-                        </label>
+                <div class="card-border p-8 text-center bg-white shadow-xl">
+                    <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" class="w-20 mx-auto mb-6 opacity-80">
+                    <h3 class="font-bold text-xl text-cocoa mb-6 tracking-wider">預設地圖引擎</h3>
+                    <div class="inline-flex bg-cream p-1.5 rounded-2xl border-2 border-sakura/30">
+                        <button @click="mapEngine = 'google'" 
+                                class="px-6 py-3 rounded-xl text-sm font-bold transition-all"
+                                :class="mapEngine === 'google' ? 'bg-sakuraDark text-white shadow-md' : 'text-cocoa/40'">
+                            Google Maps
+                        </button>
+                        <button @click="mapEngine = 'amap'" 
+                                class="px-6 py-3 rounded-xl text-sm font-bold transition-all"
+                                :class="mapEngine === 'amap' ? 'bg-sakuraDark text-white shadow-md' : 'text-cocoa/40'">
+                            高德地圖
+                        </button>
                     </div>
+                    <p class="mt-8 text-xs text-gray-400 font-medium leading-relaxed">選擇後，行程中的地址點擊將<br>自動以此引擎開啟導航。</p>
                 </div>
-            </div>
-
-            <div v-show="activeTab === 'vouchers'">
-                <p class="text-center text-sm text-gray-500 my-10">每個憑證獨立Tile (即將推出照片上傳)</p>
-            </div>
-
-            <div v-show="activeTab === 'list'">
-                <div class="space-y-3">
-                    <div v-for="item in shoppingList" :key="item.id" class="card-border p-3 flex items-center justify-between">
-                        <div class="flex items-center">
-                            <input type="checkbox" v-model="item.is_bought" @change="saveItem(item)" class="w-5 h-5 text-sakura border-gray-300 rounded focus:ring-sakura mr-3">
-                            <span :class="{'line-through text-gray-400': item.is_bought}" class="font-bold">{{ item.item_name }}</span>
-                        </div>
-                        <button @click="saveItem(item)" class="text-xs bg-sakura/20 text-sakuraDark px-3 py-1 rounded">儲存</button>
-                    </div>
-                </div>
-                <button @click="addShoppingItem" class="fixed bottom-20 right-6 w-14 h-14 bg-powder text-white rounded-full text-2xl shadow-xl flex items-center justify-center z-50">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
             </div>
 
             <div v-show="activeTab === 'expenses'" id="expense-export-area">
-                <div class="card-border p-4 mb-4 bg-white">
-                    <h3 class="font-bold mb-2">智能記帳</h3>
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <input v-model="newExp.amount" inputmode="decimal" placeholder="金額 (日幣)" class="border p-2 rounded text-sm bg-cream">
-                        <select v-model="newExp.category" class="border p-2 rounded text-sm bg-cream">
+                <div class="card-border p-6 mb-6 bg-white shadow-lg border-powder">
+                    <h3 class="font-bold text-cocoa mb-4 flex items-center"><i class="fa-solid fa-wallet mr-2 text-powder"></i> 智能記帳</h3>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-xs font-bold text-gray-400">JPY</span>
+                            <input v-model="newExp.amount" inputmode="decimal" placeholder="金額" class="w-full pl-10 p-3 rounded-xl text-sm bg-gray-50 border focus:border-powder">
+                        </div>
+                        <select v-model="newExp.category" class="w-full p-3 rounded-xl text-sm bg-gray-50 border border-gray-100 font-bold">
                             <option>餐飲</option><option>交通</option><option>購物</option><option>住宿</option><option>門票</option>
                         </select>
                     </div>
-                    <div class="flex space-x-2 mb-3">
-                        <select v-model="newExp.payment" class="border p-2 rounded text-sm w-1/3 bg-cream">
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <select v-model="newExp.payment" class="w-full p-3 rounded-xl text-xs bg-gray-50 border border-gray-100">
                             <option>電子支付</option><option>信用卡</option><option>現金</option>
                         </select>
-                        <input v-model="newExp.notes" placeholder="備註" class="border p-2 rounded text-sm w-2/3 bg-cream">
+                        <input v-model="newExp.notes" placeholder="備註內容" class="w-full p-3 rounded-xl text-xs bg-gray-50 border border-gray-100">
                     </div>
-                    <button @click="addExpense" class="w-full bg-sakuraDark text-white py-2 rounded-lg text-sm font-bold sakura-shadow">新增支出</button>
+                    <button @click="addExpense" class="w-full bg-powder text-blue-700 py-4 rounded-2xl text-sm font-bold shadow-md active:scale-95 transition">新增支出記錄</button>
                 </div>
 
-                <div class="card-border p-4 mb-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-sm">今日匯率 (JPY to HKD)</h3>
-                        <input v-model="exchangeRate" inputmode="decimal" class="w-20 border-b border-sakura text-right p-1 text-sm bg-transparent">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="card-border p-5 bg-white text-center">
+                        <p class="text-[10px] text-gray-400 font-bold mb-1">今日匯率 (JPY➜HKD)</p>
+                        <input v-model="exchangeRate" inputmode="decimal" class="w-20 border-b-2 border-sakura text-center font-bold text-cocoa bg-transparent text-lg">
                     </div>
-                    <p class="text-xl font-bold text-center mt-4">總支出: HK$ {{ totalHKD }}</p>
+                    <div class="card-border p-5 bg-sakura/10 text-center border-sakuraDark/30">
+                        <p class="text-[10px] text-sakuraDark font-bold mb-1">總支出折合</p>
+                        <p class="text-xl font-bold text-cocoa">HK$ {{ totalHKD }}</p>
+                    </div>
                 </div>
 
-                <canvas id="expenseChart" class="w-full h-48 mb-6"></canvas>
+                <div class="card-border p-6 bg-white mb-8">
+                    <canvas id="expenseChart" class="w-full h-48"></canvas>
+                </div>
                 
-                <button @click="exportPDF" class="w-full bg-powder/50 text-blue-800 py-3 rounded-xl mb-10 font-bold">
-                    <i class="fa-solid fa-file-pdf"></i> 匯出截圖/PDF
+                <button @click="exportPDF" class="w-full bg-cocoa/80 text-white py-4 rounded-2xl mb-12 font-bold shadow-xl">
+                    <i class="fa-solid fa-file-pdf mr-2"></i> 匯出報表 (PDF / 截圖)
                 </button>
             </div>
             
         </main>
         
-        <footer class="text-center py-6 text-xs text-sakuraDark font-bold bg-[#FFF9E3]">
-            🌸 Tiffany & Benjamin 🌸
+        <footer class="text-center py-10 text-[10px] text-sakuraDark font-bold tracking-[0.2em] bg-cream">
+            🌸 TIFFANY & BENJAMIN 🌸
         </footer>
     </div>
 </div>
@@ -306,39 +364,40 @@
 const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
 createApp({
-    components: {
-        draggable: window.vuedraggable
-    },
+    components: { draggable: window.vuedraggable },
     setup() {
-        // ---- State ----
+        // --- Core State ---
         const isConfigured = ref(false);
         const dbUrl = ref(localStorage.getItem('sb_url') || '');
         const dbKey = ref(localStorage.getItem('sb_key') || '');
         const showSettings = ref(false);
         const supabase = ref(null);
+        const toastShow = ref(false);
+        const toastMsg = ref('');
 
         const activeTab = ref('schedule');
         const tabs = [
             { id: 'schedule', label: '行程', icon: 'fa-calendar-day' },
-            { id: 'nav', label: '導航', icon: 'fa-location-arrow' },
+            { id: 'nav', label: '導航', icon: 'fa-compass' },
             { id: 'vouchers', label: '憑證', icon: 'fa-ticket' },
-            { id: 'list', label: '清單', icon: 'fa-list-check' },
+            { id: 'list', label: '清單', icon: 'fa-cart-shopping' },
             { id: 'expenses', label: '記帳', icon: 'fa-coins' }
         ];
 
         const tripInfo = ref({ title: '', start_date: '', end_date: '', wakeup_time: '09:00', sleep_time: '22:00' });
-        const newTrip = ref({ title: '', start: '', end: '' });
+        const newTrip = ref({ title: '我們的東京之旅', start: '', end: '' });
         
         const allSchedules = ref([]);
         const activeDate = ref('');
         const mapEngine = ref('google');
+        const transportModes = ['步行', '地鐵', '捷運', '火車', '高鐵', '電車', '輕軌', '巴士', '小巴', '的士', '船', '飛機', '纜車', '其他'];
         
         const shoppingList = ref([]);
         const expenses = ref([]);
         const newExp = ref({ amount: '', category: '餐飲', payment: '電子支付', notes: '' });
-        const exchangeRate = ref(0.053); // Default roughly JPY to HKD
+        const exchangeRate = ref(0.0528);
 
-        // ---- Computed ----
+        // --- Computed ---
         const tripDays = computed(() => {
             if(!tripInfo.value.start_date) return [];
             let days = [];
@@ -349,8 +408,7 @@ createApp({
                 let dStr = curr.toISOString().split('T')[0];
                 let mm = String(curr.getMonth()+1).padStart(2,'0');
                 let dd = String(curr.getDate()).padStart(2,'0');
-                let ddd = daysArr[curr.getDay()];
-                days.push({ date: dStr, label: `${mm}.${dd}(${ddd})` });
+                days.push({ date: dStr, label: `${mm}.${dd}(${daysArr[curr.getDay()]})` });
                 curr.setDate(curr.getDate() + 1);
             }
             if(days.length > 0 && !activeDate.value) activeDate.value = days[0].date;
@@ -360,13 +418,12 @@ createApp({
         const activeDaySchedules = computed({
             get: () => allSchedules.value.filter(s => s.day_date === activeDate.value && !s.is_pending).sort((a,b) => a.sort_order - b.sort_order),
             set: (val) => {
-                // Update specific day list, reassign sort orders
                 val.forEach((item, idx) => {
-                    let realItem = allSchedules.value.find(s => s.id === item.id);
-                    if(realItem) {
-                        realItem.day_date = activeDate.value;
-                        realItem.is_pending = false;
-                        realItem.sort_order = idx;
+                    let target = allSchedules.value.find(s => s.id === item.id);
+                    if(target) {
+                        target.day_date = activeDate.value;
+                        target.is_pending = false;
+                        target.sort_order = idx;
                     }
                 });
             }
@@ -376,8 +433,8 @@ createApp({
             get: () => allSchedules.value.filter(s => s.is_pending).sort((a,b) => a.sort_order - b.sort_order),
             set: (val) => {
                 val.forEach((item, idx) => {
-                    let realItem = allSchedules.value.find(s => s.id === item.id);
-                    if(realItem) { realItem.is_pending = true; realItem.sort_order = idx; }
+                    let target = allSchedules.value.find(s => s.id === item.id);
+                    if(target) { target.is_pending = true; target.sort_order = idx; }
                 });
             }
         });
@@ -387,7 +444,7 @@ createApp({
             return (sum * exchangeRate.value).toFixed(2);
         });
 
-        // ---- Time Engine (核心連動引擎) ----
+        // --- Domino Engine Helpers ---
         const timeToMinutes = (timeStr) => {
             if (!timeStr || !timeStr.includes(':')) return 0;
             const [hrs, mins] = timeStr.split(':').map(Number);
@@ -400,46 +457,184 @@ createApp({
         };
         const getGapMinutes = (endA, startB) => {
             if(!endA || !startB) return 0;
-            return timeToMinutes(startB) - timeToMinutes(endA);
+            const gap = timeToMinutes(startB) - timeToMinutes(endA);
+            return gap > 0 ? gap : 0;
         };
 
         const updateScheduleChain = (list, startIndex) => {
             for (let i = startIndex; i < list.length; i++) {
-                const current = list[i];
-                const startMins = timeToMinutes(current.start_time);
-                const durationMins = timeToMinutes(current.duration || "01:00");
-                current.end_time = minutesToTime(startMins + durationMins);
-
+                const curr = list[i];
+                const startMins = timeToMinutes(curr.start_time);
+                const durationMins = timeToMinutes(curr.duration || "01:00");
+                curr.end_time = minutesToTime(startMins + durationMins);
+                // Set next item's start to current's end
                 if (list[i + 1]) {
-                    list[i + 1].start_time = current.end_time;
+                    list[i + 1].start_time = curr.end_time;
                 }
             }
-            return list;
         };
 
+        // --- Interaction Handlers ---
         const handleTimeInput = (event, item, field) => {
-            let val = event.target.value.replace(/\D/g, ''); // Fuzzy Input
-            if (val.length === 4) val = `${val.slice(0, 2)}:${val.slice(2, 4)}`;
-            else if (val.length > 0 && !val.includes(':')) return; // Invalid format ignores
-            
+            let val = event.target.value.replace(/\D/g, ''); // 模糊輸入處理
+            if (val.length === 4) {
+                val = `${val.slice(0, 2)}:${val.slice(2, 4)}`;
+            } else if (val.length > 0 && !val.includes(':')) {
+                return; 
+            }
             item[field] = val;
             
-            // Domino Trigger
-            let list = activeDaySchedules.value;
-            let idx = list.findIndex(i => i.id === item.id);
-            if(idx > -1) {
-                updateScheduleChain(list, idx);
-            }
+            // 觸發連動
+            const list = activeDaySchedules.value;
+            const idx = list.findIndex(i => i.id === item.id);
+            if(idx > -1) updateScheduleChain(list, idx);
         };
 
         const onDragEnd = () => {
-            // Trigger chain recalculation on drag drop
             updateScheduleChain(activeDaySchedules.value, 0);
+            showToast("順序已調整");
         };
 
-        // ---- Actions ----
+        const createTrip = () => {
+            if(!newTrip.value.start || !newTrip.value.end) return alert("請選擇日期");
+            tripInfo.value = { 
+                title: newTrip.value.title, 
+                start_date: newTrip.value.start, 
+                end_date: newTrip.value.end 
+            };
+            showToast("旅程建立成功！");
+        };
+
+        const addNewCard = (type) => {
+            let startTime = "09:00";
+            const currentList = activeDaySchedules.value;
+            if(currentList.length > 0) startTime = currentList[currentList.length-1].end_time;
+            
+            const newId = 'id_' + Date.now();
+            const newItem = {
+                id: newId,
+                day_date: activeDate.value,
+                type: type,
+                title: type === 'activity' ? '新行程' : '交通移動',
+                start_time: startTime,
+                duration: '01:00',
+                end_time: minutesToTime(timeToMinutes(startTime) + 60),
+                location: '',
+                category: '景點活動',
+                isEditing: true,
+                is_pending: false,
+                sort_order: currentList.length,
+                segments: type === 'transport' ? [{ id: Date.now(), mode: '地鐵', route_name: '', from_station: '', to_station: '' }] : []
+            };
+            
+            if(type === 'transport') {
+                newItem.from_station = "";
+                newItem.to_station = "";
+            }
+
+            allSchedules.value.push(newItem);
+        };
+
+        const addSegment = (item) => {
+            item.segments.push({ id: Date.now(), mode: '地鐵', route_name: '', from_station: '', to_station: '' });
+        };
+
+        const saveSchedule = (item) => {
+            if(!item.day_date) {
+                item.is_pending = true;
+                showToast("未設定日期，已放入待編區", 2000);
+            } else {
+                showToast("已儲存");
+            }
+            item.isEditing = false;
+        };
+
+        const deleteSchedule = (id) => {
+            if(confirm("確定要刪除這個行程嗎？")) {
+                allSchedules.value = allSchedules.value.filter(s => s.id !== id);
+                updateScheduleChain(activeDaySchedules.value, 0);
+            }
+        };
+
+        const openMap = (loc) => {
+            const encoded = encodeURIComponent(loc);
+            const url = mapEngine.value === 'amap' 
+                ? `https://www.amap.com/search?query=${encoded}`
+                : `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+            window.open(url, '_blank');
+        };
+
+        const getTransportIcon = (mode) => {
+            const icons = { '步行':'fa-person-walking', '地鐵':'fa-train-subway', '巴士':'fa-bus', '飛機':'fa-plane', '的士':'fa-taxi' };
+            return 'fa-solid ' + (icons[mode] || 'fa-train');
+        };
+
+        const showToast = (msg, duration=1000) => {
+            toastMsg.value = msg;
+            toastShow.value = true;
+            setTimeout(() => { toastShow.value = false; }, duration);
+        };
+
+        // --- Excel Engine (xlsx-js-style) ---
+        const exportToTravelExcel = () => {
+            const headerRow = ["時間", ...tripDays.value.map(d => d.label)];
+            const wsData = [headerRow];
+            
+            // Create 15-min interval rows (96 rows)
+            for (let i = 0; i < 96; i++) {
+                const totalMins = i * 15;
+                const h = Math.floor(totalMins / 60);
+                const m = totalMins % 60;
+                const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                
+                let row = [timeStr];
+                const isRest = (h < 10 || h >= 21);
+                
+                tripDays.value.forEach(() => {
+                    row.push(isRest ? { v: "", s: { fill: { fgColor: { rgb: "EFEFEF" } } } } : ""); 
+                });
+                wsData.push(row);
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const merges = [];
+
+            // Mapping schedules to the grid
+            tripDays.value.forEach((day, dayIdx) => {
+                const colIdx = dayIdx + 1;
+                const daySchedules = allSchedules.value.filter(s => s.day_date === day.date && !s.is_pending);
+                
+                daySchedules.forEach(item => {
+                    const startRow = Math.floor(timeToMinutes(item.start_time) / 15) + 1;
+                    const endRow = Math.floor(timeToMinutes(item.end_time) / 15) + 1;
+                    
+                    const cellAddress = XLSX.utils.encode_cell({ r: startRow, c: colIdx });
+                    ws[cellAddress] = { 
+                        v: item.type === 'transport' ? `${item.from_station}➜${item.to_station}` : item.title,
+                        s: { 
+                            fill: { fgColor: { rgb: item.type === 'transport' ? "B0E0E6" : "FFD1DC" } },
+                            alignment: { vertical: "center", horizontal: "center", wrapText: true },
+                            font: { bold: true, size: 9 }
+                        }
+                    };
+                    
+                    if (endRow > startRow) {
+                        merges.push({ s: { r: startRow, c: colIdx }, e: { r: endRow - 1, c: colIdx } });
+                    }
+                });
+            });
+
+            ws['!merges'] = merges;
+            ws['!cols'] = [{ wch: 10 }, ...tripDays.value.map(() => ({ wch: 22 }))];
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "我們的旅遊行程");
+            XLSX.writeFile(wb, "Our_Travel_Diary.xlsx");
+        };
+
+        // --- Database & Init ---
         const saveDbConfig = () => {
-            if(!dbUrl.value || !dbKey.value) return alert("請輸入資訊");
+            if(!dbUrl.value || !dbKey.value) return alert("資訊不完整");
             localStorage.setItem('sb_url', dbUrl.value);
             localStorage.setItem('sb_key', dbKey.value);
             initSupabase();
@@ -449,157 +644,62 @@ createApp({
             try {
                 supabase.value = window.supabase.createClient(dbUrl.value, dbKey.value);
                 isConfigured.value = true;
-                showSettings.value = false;
-                loadMockData(); // Due to unauthenticated pure CDN environment in prompt constraint, we simulate or connect
-            } catch (e) { alert("連線錯誤，請檢查 URL 和 Key"); }
+                showToast("連線成功");
+            } catch (e) { alert("Supabase 連線失敗"); }
         };
 
-        // Mock data to ensure it works strictly via copy-paste without immediate strict backend reqs
-        const loadMockData = () => {
-            // Fallback empty state
-        };
-
-        const createTrip = () => {
-            tripInfo.value = { title: newTrip.value.title, start_date: newTrip.value.start, end_date: newTrip.value.end };
-        };
-
-        const addNewCard = () => {
-            let defaultStart = "09:00";
-            let list = activeDaySchedules.value;
-            if(list.length > 0) defaultStart = list[list.length-1].end_time;
-            
-            const newId = 'id_' + Date.now();
-            allSchedules.value.push({
-                id: newId,
-                day_date: activeDate.value,
-                type: 'activity',
-                title: '新增行程',
-                start_time: defaultStart,
-                duration: '01:00',
-                end_time: minutesToTime(timeToMinutes(defaultStart) + 60),
-                isEditing: true,
-                is_pending: false,
-                sort_order: list.length
-            });
-            updateScheduleChain(activeDaySchedules.value, 0);
-        };
-
-        const saveSchedule = (item) => {
-            item.isEditing = false;
-            // Supabase Logic would go here: supabase.value.from('schedules').upsert(item)
-            if(!item.day_date) {
-                item.is_pending = true;
-                alert("未填寫日期，已放入有待編入行程區 (維持1秒)");
-            }
-        };
-
-        const deleteSchedule = (id) => {
-            if(confirm("確定刪除此行程？")) {
-                allSchedules.value = allSchedules.value.filter(s => s.id !== id);
-                updateScheduleChain(activeDaySchedules.value, 0);
-            }
-        };
-
-        const openMap = (loc) => {
-            let base = mapEngine.value === 'amap' ? 'https://ditu.amap.com/search?query=' : 'https://maps.google.com/?q=';
-            window.open(base + encodeURIComponent(loc));
-        };
-
-        // ---- Excel Engine ----
-        const exportToTravelExcel = () => {
-            const wsData = [ ["時間", ...tripDays.value.map(d => d.label)] ];
-            
-            // 96 intervals (15 min)
-            for (let i = 0; i < 96; i++) {
-                const h = Math.floor(i / 4);
-                const m = (i % 4) * 15;
-                const label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                
-                let row = [label];
-                tripDays.value.forEach(day => {
-                    // Check if Hotel Rest period (00:00-10:00 or 21:00-00:00) -> Grey fill
-                    // xlsx-js-style logic:
-                    let isRest = (h < 10 || h >= 21);
-                    row.push(isRest ? { v: "", s: { fill: { fgColor: { rgb: "EFEFEF" } } } } : ""); 
-                });
-                wsData.push(row);
-            }
-
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            const merges = [];
-
-            // Mapping Schedule to grid
-            tripDays.value.forEach((day, dayIdx) => {
-                const colIdx = dayIdx + 1;
-                let daySchedules = allSchedules.value.filter(s => s.day_date === day.date && !s.is_pending);
-                
-                daySchedules.forEach(item => {
-                    const startRow = Math.floor(timeToMinutes(item.start_time) / 15) + 1;
-                    const endRow = Math.floor(timeToMinutes(item.end_time) / 15) + 1;
-                    
-                    const cellAddress = XLSX.utils.encode_cell({ r: startRow, c: colIdx });
-                    ws[cellAddress] = { v: `${item.title}\n${item.location||''}` };
-                    
-                    if (endRow > startRow) merges.push({ s: { r: startRow, c: colIdx }, e: { r: endRow - 1, c: colIdx } });
-                });
-            });
-
-            ws['!merges'] = merges;
-            ws['!cols'] = [{ wch: 10 }, ...tripDays.value.map(()=>({wch: 25}))];
-            
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "旅遊行程");
-            XLSX.writeFile(wb, "Our_Travel_Diary.xlsx");
-        };
-
-        // ---- Expenses Engine ----
         const addExpense = () => {
             if(!newExp.value.amount) return;
             expenses.value.push({...newExp.value, id: Date.now()});
             newExp.value.amount = '';
             newExp.value.notes = '';
+            showToast("已新增支出");
             updateChart();
         };
 
         let chartInstance = null;
         const updateChart = () => {
-            if(!document.getElementById('expenseChart')) return;
-            const ctx = document.getElementById('expenseChart').getContext('2d');
-            let dataMap = { '餐飲':0, '交通':0, '購物':0, '住宿':0, '門票':0 };
-            expenses.value.forEach(e => dataMap[e.category] += Number(e.amount));
-            
-            if(chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(dataMap),
-                    datasets: [{ data: Object.values(dataMap), backgroundColor: ['#FFD1DC', '#FFF9E3', '#B0E0E6', '#FFB6C1', '#8B5A2B'] }]
-                }
+            nextTick(() => {
+                const el = document.getElementById('expenseChart');
+                if(!el) return;
+                const ctx = el.getContext('2d');
+                let dataMap = { '餐飲':0, '交通':0, '購物':0, '住宿':0, '門票':0 };
+                expenses.value.forEach(e => dataMap[e.category] += Number(e.amount));
+                
+                if(chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(dataMap),
+                        datasets: [{ 
+                            data: Object.values(dataMap), 
+                            backgroundColor: ['#FFD1DC', '#B0E0E6', '#FFF9E3', '#FFB6C1', '#8B5A2B'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { plugins: { legend: { position: 'bottom', labels: { font: { family: 'Zen Maru Gothic', weight: 'bold' } } } } }
+                });
             });
         };
 
         const exportPDF = () => {
             const element = document.getElementById('expense-export-area');
-            html2pdf().from(element).save('Travel_Expenses.pdf');
+            html2pdf().from(element).set({ margin: 10, filename: 'Travel_Expenses.pdf' }).save();
         };
 
-        // Mount hooks
         onMounted(() => {
             if(dbUrl.value && dbKey.value) initSupabase();
-            // Mocking some init data
-            shoppingList.value = [{id:1, item_name: 'Tokyo Banana', is_bought: false}];
         });
         
-        watch(activeTab, (val) => {
-            if(val === 'expenses') nextTick(() => updateChart());
-        });
+        watch(activeTab, (v) => { if(v === 'expenses') updateChart(); });
 
         return {
             isConfigured, dbUrl, dbKey, showSettings, saveDbConfig,
+            toastShow, toastMsg,
             tabs, activeTab, tripInfo, newTrip, tripDays, createTrip,
-            allSchedules, activeDaySchedules, pendingSchedules, activeDate, mapEngine,
-            addNewCard, saveSchedule, deleteSchedule, onDragEnd, handleTimeInput, getGapMinutes,
-            openMap, exportToTravelExcel,
+            allSchedules, activeDaySchedules, pendingSchedules, activeDate, mapEngine, transportModes,
+            addNewCard, addSegment, saveSchedule, deleteSchedule, onDragEnd, handleTimeInput, getGapMinutes,
+            openMap, getTransportIcon, exportToTravelExcel,
             shoppingList, expenses, newExp, addExpense, totalHKD, exchangeRate, exportPDF
         }
     }
